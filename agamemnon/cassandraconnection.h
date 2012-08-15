@@ -1,0 +1,44 @@
+#ifndef CASSANDRACONNECTION_H
+#define CASSANDRACONNECTION_H
+
+#include <boost/shared_ptr.hpp>
+#include <thrift/async/TAsyncChannel.h>
+#include <boost/function.hpp>
+#include <boost/enable_shared_from_this.hpp>
+
+#include "agamemnon_types.h"
+
+namespace teamspeak{
+namespace agamemnon{
+
+//forward ref
+class AgCassandraCobClient;
+
+  
+class CassandraConnectionChannel;
+
+class CassandraConnection : public boost::enable_shared_from_this<CassandraConnection>
+{
+  public:
+    typedef boost::shared_ptr<CassandraConnection> Ptr;
+    
+    CassandraConnection(AgCassandraCobClient* con);
+    ~CassandraConnection();
+    
+    const std::string& getHost() const {return m_Host;}
+    const bool needToCloseWhenDone() const { return m_NeedToCloseWhenDone;}
+    
+    void getClusterName(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
+    
+    void setNeedToCloseWhenDone();
+  private:
+    void getClusterName_Done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
+    
+    AgCassandraCobClient* m_AgCassandraCobClient;
+    std::string           m_Host;
+    bool                  m_NeedToCloseWhenDone;
+};
+
+} //namespace teamspeak
+} //namespace agamemnon
+#endif // CASSANDRACONNECTION_H

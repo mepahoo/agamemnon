@@ -16,6 +16,8 @@ namespace agamemnon{
 class Client : public boost::enable_shared_from_this<Client>
 {
   public:
+    typedef boost::shared_ptr<Client> Ptr;
+    
     Client(boost::asio::io_service& IOService, ConnectionFactory::Ptr& connectionFactory);
 
     void getClusterName(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);

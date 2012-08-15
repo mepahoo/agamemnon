@@ -22,6 +22,11 @@ void CassandraConnection::getClusterName(ErrorFunction errorFunc, boost::functio
   m_AgCassandraCobClient->describe_cluster_name(boost::bind(&CassandraConnection::getClusterName_Done, shared_from_this(), errorFunc, callback));
 }
 
+void CassandraConnection::setNeedToCloseWhenDone()
+{
+  m_NeedToCloseWhenDone = true;
+}
+
 void CassandraConnection::getClusterName_Done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback){
   std::string result;
   try{

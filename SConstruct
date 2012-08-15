@@ -35,3 +35,7 @@ SConscript(['agamemnon/SConscript'], exports={'env':env}, build_dir='build/agame
 Import('agamemnon')
 
 Default(thriftcassandra, agamemnon)
+
+#build examples
+SConscript(['examples/SConscript'], exports=[{'env':env}, {'deplibs':agamemnon+thriftcassandra}], build_dir='build/examples', duplicate=0)
+Import('examples')

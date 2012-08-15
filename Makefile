@@ -6,6 +6,9 @@ agamemnon:
 
 all: thriftcassandra agamemnon
 
+examples: thriftcassandra agamemnon
+	scons examples
+
 clean:
 	scons --clean
 

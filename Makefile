@@ -1,12 +1,13 @@
+all:
+	scons
+
 thriftcassandra:
 	scons thriftcassandra
 
 agamemnon:
 	scons agamemnon
 
-all: thriftcassandra agamemnon
-
-examples: thriftcassandra agamemnon
+examples:
 	scons examples
 
 clean:

@@ -126,14 +126,21 @@ void SingleConnectionFactory::PrivImpl::connected(boost::shared_ptr< ::apache::t
 {
 
   if (channelPtr->good()){
-      boost::function<void(CassandraConnection::Ptr)> callback;
+      RequestQueueItem item;
       {
         boost::lock_guard<boost::mutex> lock(m_Mutex);
-	callback = m_Callbacks.front().callback;
+	item = m_Callbacks.front();
 	m_Callbacks.pop();
       }
+      
       AgCassandraCobClient* agClient = new AgCassandraCobClient(channelPtr, m_ProtocolFactory);
-      callback(createConnectionSharedPointer(new CassandraConnection(agClient)));
+      CassandraConnection::Ptr cassandraConnection = createConnectionSharedPointer(new CassandraConnection(agClient));
+      if (m_ConnectionCommonSettings.keyspace.empty()){
+	item.callback(cassandraConnection);
+      } else {
+	/*set keyspace before returning connection to client*/
+	cassandraConnection->setKeyspace(m_ConnectionCommonSettings.keyspace, item.errorFunc, boost::bind(item.callback, cassandraConnection));
+      }
   } else {
       ErrorFunction errorFunc;
       {

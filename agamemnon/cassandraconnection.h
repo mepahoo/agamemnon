@@ -25,6 +25,8 @@ class CassandraConnection : public boost::enable_shared_from_this<CassandraConne
     CassandraConnection(AgCassandraCobClient* con);
     ~CassandraConnection();
     
+    void setKeyspace(const std::string& keyspace, ErrorFunction errorFunc, boost::function<void()> callback);
+    
     const std::string& getHost() const {return m_Host;}
     const bool needToCloseWhenDone() const { return m_NeedToCloseWhenDone;}
     
@@ -32,6 +34,7 @@ class CassandraConnection : public boost::enable_shared_from_this<CassandraConne
     
     void setNeedToCloseWhenDone();
   private:
+    void setKeyspace_done(ErrorFunction errorFunc, boost::function<void()> callback);
     void getClusterName_Done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
     
     AgCassandraCobClient* m_AgCassandraCobClient;

@@ -28,11 +28,10 @@ env.Append(CPPPATH = include_directories)
 
 #build thrift cassandra interface
 SConscript(['thriftcassandra/SConscript'], exports={'env':env}, build_dir='build/thriftcassandra', duplicate=0)
-Import('thriftcassandra_list')
+Import('thriftcassandra')
 
 #build agamemnon interface
 SConscript(['agamemnon/SConscript'], exports={'env':env}, build_dir='build/agamemnon', duplicate=0)
-Import('agamemnon_list')
+Import('agamemnon')
 
-#build the test client using Common + Client library
-#SConscript(['src/ts3aTestClient/SConscript'], exports=[ {'env':env}, {'deplibs':ts3AccountingClientLib_list + ts3AccountingCommon_list + libraries}, {'TomCryptMath':TomCryptMath}], build_dir='build/TestClient', duplicate=0)
+Default(thriftcassandra, agamemnon)

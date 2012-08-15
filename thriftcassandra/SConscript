@@ -4,6 +4,6 @@ Import('env')
 
 sourceFiles = Split('cassandra_constants.cpp  Cassandra.cpp  cassandra_types.cpp')
 
-thriftcassandra_list = env.StaticLibrary('thriftcassandra', sourceFiles)
+thriftcassandra = env.StaticLibrary('thriftcassandra', sourceFiles)
 
-Export('thriftcassandra_list')
+Export('thriftcassandra')

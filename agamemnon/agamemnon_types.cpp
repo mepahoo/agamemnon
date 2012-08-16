@@ -49,5 +49,27 @@ Error Error::TranslateException(const std::exception* ex)
   return Error(GenericException, ex->what());
 }
 
+#define CASERET(name) case name : return #name 
+
+std::string Error::getTypeString() const
+{
+  switch(type)
+  {
+      CASERET(GenericException);
+      CASERET(NotFoundException);
+      CASERET(InvalidRequestException);
+      CASERET(UnavailableException);
+      CASERET(TimedOutException);
+      CASERET(AuthenticationException);
+      CASERET(AuthorizationException);
+      CASERET(SchemaDisagreementException);
+      CASERET(ApplicationException);
+      CASERET(ProtocolException);
+      CASERET(TransportException);
+      CASERET(TransportTimeoutException);
+      default: return "unknown error type";
+  }
+}
+
 } //namespace teamspeak
 } //namespace agamemnon

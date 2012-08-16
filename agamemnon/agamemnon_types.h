@@ -28,6 +28,8 @@ namespace agamemnon{
     Error(Type _type, const std::string& _message): message(_message){}
     static Error TranslateException(const std::exception* ex);
     
+    std::string getTypeString() const;
+    
     Type        type;
     std::string message;
   };

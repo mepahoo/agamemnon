@@ -40,25 +40,15 @@ void CassandraConnection::setNeedToCloseWhenDone()
 void CassandraConnection::setKeyspace_done(ErrorFunction errorFunc, boost::function<void()> callback)
 {
   ::org::apache::cassandra::CqlResult result;
-  try{
-    m_AgCassandraCobClient->checkTransportErrors();
-    m_AgCassandraCobClient->recv_execute_cql_query(result);
-  } catch (const std::exception e){
-    errorFunc(&e);
-    return;
-  }
+  if (!m_AgCassandraCobClient->checkTransportErrors(errorFunc)) return;
+  if (!m_AgCassandraCobClient->recv_execute_cql_query(errorFunc, result)) return;
   callback();
 }
 
 void CassandraConnection::getClusterName_Done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback){
   std::string result;
-  try{
-    m_AgCassandraCobClient->checkTransportErrors();
-    m_AgCassandraCobClient->recv_describe_cluster_name(result);
-  } catch (const std::exception e){
-    errorFunc(&e);
-    return;
-  }
+  if (!m_AgCassandraCobClient->checkTransportErrors(errorFunc)) return;
+  if (!m_AgCassandraCobClient->recv_describe_cluster_name(errorFunc, result)) return;
   callback(result);
 }
     

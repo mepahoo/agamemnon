@@ -35,33 +35,40 @@ bool AgCassandraCobClient::checkTransportErrors(ExErrorFunction errorFunc){
   return true;
 }
 
+bool AgCassandraCobClient::common_recv(ExErrorFunction errorFunc, const std::string& fname)
+{
+  int32_t rseqid = 0;
+  std::string rfname;
+  ::apache::thrift::protocol::TMessageType mtype;
+
+  iprot_->readMessageBegin(rfname, mtype, rseqid);
+  if (mtype == ::apache::thrift::protocol::T_EXCEPTION) {
+    ::apache::thrift::TApplicationException x;
+    x.read(iprot_);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+    errorFunc(&x);
+    return false;
+  }
+  if (mtype != ::apache::thrift::protocol::T_REPLY) {
+    iprot_->skip(::apache::thrift::protocol::T_STRUCT);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+  }
+  if (fname != rfname) {
+    iprot_->skip(::apache::thrift::protocol::T_STRUCT);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+  }
+  return true;
+}
+
 bool AgCassandraCobClient::recv_describe_cluster_name(ExErrorFunction errorFunc, std::string& _return)
 {
 
-  int32_t rseqid = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TMessageType mtype;
-
   try{
-    iprot_->readMessageBegin(fname, mtype, rseqid);
-    if (mtype == ::apache::thrift::protocol::T_EXCEPTION) {
-      ::apache::thrift::TApplicationException x;
-      x.read(iprot_);
-      iprot_->readMessageEnd();
-      iprot_->getTransport()->readEnd();
-      errorFunc(&x);
-      return false;
-    }
-    if (mtype != ::apache::thrift::protocol::T_REPLY) {
-      iprot_->skip(::apache::thrift::protocol::T_STRUCT);
-      iprot_->readMessageEnd();
-      iprot_->getTransport()->readEnd();
-    }
-    if (fname.compare("describe_cluster_name") != 0) {
-      iprot_->skip(::apache::thrift::protocol::T_STRUCT);
-      iprot_->readMessageEnd();
-      iprot_->getTransport()->readEnd();
-    }
+    if (!common_recv(errorFunc, "describe_cluster_name")) return false;
+
     ::org::apache::cassandra::Cassandra_describe_cluster_name_presult result;
     result.success = &_return;
     result.read(iprot_);
@@ -85,30 +92,9 @@ bool AgCassandraCobClient::recv_describe_cluster_name(ExErrorFunction errorFunc,
 bool AgCassandraCobClient::recv_execute_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlResult& _return)
 {
 
-  int32_t rseqid = 0;
-  std::string fname;
-  ::apache::thrift::protocol::TMessageType mtype;
-
   try{
-    iprot_->readMessageBegin(fname, mtype, rseqid);
-    if (mtype == ::apache::thrift::protocol::T_EXCEPTION) {
-      ::apache::thrift::TApplicationException x;
-      x.read(iprot_);
-      iprot_->readMessageEnd();
-      iprot_->getTransport()->readEnd();
-      errorFunc(&x);
-      return false;
-    }
-    if (mtype != ::apache::thrift::protocol::T_REPLY) {
-      iprot_->skip(::apache::thrift::protocol::T_STRUCT);
-      iprot_->readMessageEnd();
-      iprot_->getTransport()->readEnd();
-    }
-    if (fname.compare("execute_cql_query") != 0) {
-      iprot_->skip(::apache::thrift::protocol::T_STRUCT);
-      iprot_->readMessageEnd();
-      iprot_->getTransport()->readEnd();
-    }
+    if (!common_recv(errorFunc, "execute_cql_query")) return false;
+    
     ::org::apache::cassandra::Cassandra_execute_cql_query_presult result;
     result.success = &_return;
     result.read(iprot_);

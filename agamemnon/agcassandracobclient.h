@@ -19,6 +19,7 @@ namespace agamemnon{
       void resetBuffers();
       bool checkTransportErrors(ExErrorFunction errorFunc);
 
+      bool common_recv(ExErrorFunction errorFunc, const std::string& fname);
       bool recv_describe_cluster_name(ExErrorFunction errorFunc, std::string& _return);
       bool recv_execute_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlResult& _return);
 

@@ -45,9 +45,7 @@ void Client::ensureConnection_done(CassandraConnection::Ptr connection, boost::f
   continuation(m_Connection);
 }
 
-void Client::generic_RetryError(const std::exception* error, ErrorFunction errorFunc, boost::function<void()> retryFunc){
-  const ::apache::thrift::transport::TTransportException* transportException = dynamic_cast<const ::apache::thrift::transport::TTransportException*>(error);
-  const ::org::apache::cassandra::TimedOutException* timedOutException = dynamic_cast<const ::org::apache::cassandra::TimedOutException*>(error);
+void Client::generic_RetryError(const Error& error, ErrorFunction errorFunc, boost::function<void()> retryFunc){
 
   //drop the cached connection
   if (m_Connection.get()){
@@ -57,14 +55,14 @@ void Client::generic_RetryError(const std::exception* error, ErrorFunction error
 
   /* abort */
   if (m_RetryCount++ >= m_ConnectionFactory->maxRetryCount() ||
-      (transportException == 0 && timedOutException == 0) 
+      (error.type != Error::TransportException && error.type != Error::TimedOutException) 
       ){
     errorFunc(error);
     return;
   }
 
   /*delayed retry*/
-  if (timedOutException != 0){
+  if (error.type == Error::TimedOutException){
     m_Timer.expires_from_now(boost::posix_time::milliseconds(m_ConnectionFactory->retryDelayOnTimeout()));
     m_Timer.async_wait(boost::bind(&Client::generic_ReconnectWaitDone, shared_from_this(), _1, errorFunc, retryFunc));
     return;
@@ -77,8 +75,7 @@ void Client::generic_RetryError(const std::exception* error, ErrorFunction error
 void Client::generic_ReconnectWaitDone(const boost::system::error_code& error, ErrorFunction errorFunc, boost::function<void()> retryFunc)
 {
   if (error){
-    ::apache::thrift::transport::TTransportException errorParam(::apache::thrift::transport::TTransportException::UNKNOWN, "Timer error on retry wait");
-    errorFunc(&errorParam);
+    errorFunc(Error(Error::TransportException, "Timer error on retry wait"));
     return;
   }
   

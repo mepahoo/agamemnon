@@ -2,7 +2,7 @@ import os, sys
 
 Import('env')
 
-sourceFiles = Split('client.cpp cassandraconnection.cpp agcassandracobclient.cpp cassandraconnectionchannel.cpp singleconnectionfactory.cpp')
+sourceFiles = Split('agamemnon_types.cpp agcassandracobclient.cpp client.cpp cassandraconnection.cpp cassandraconnectionchannel.cpp singleconnectionfactory.cpp')
 
 agamemnon = env.StaticLibrary('agamemnon', sourceFiles)
 

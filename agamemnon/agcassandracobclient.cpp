@@ -23,12 +23,10 @@ void AgCassandraCobClient::resetBuffers(){
 bool AgCassandraCobClient::checkTransportErrors(ExErrorFunction errorFunc){
   if (!channel_->good()){
     if (channel_->timedOut()){
-      TTransportException ex(TTransportException::TIMED_OUT);
-      errorFunc(&ex);
+      errorFunc(Error(Error::TransportTimeoutException, "IO on connection timed out"));
       return false;
     } else {
-      TTransportException ex(TTransportException::UNKNOWN);
-      errorFunc(&ex);
+      errorFunc(Error(Error::TransportException, "Connection got interrupted"));
       return false;
     }
   }
@@ -47,7 +45,7 @@ bool AgCassandraCobClient::common_recv(ExErrorFunction errorFunc, const std::str
     x.read(iprot_);
     iprot_->readMessageEnd();
     iprot_->getTransport()->readEnd();
-    errorFunc(&x);
+    errorFunc(Error(Error::ApplicationException, x.what()));
     return false;
   }
   if (mtype != ::apache::thrift::protocol::T_REPLY) {
@@ -80,11 +78,10 @@ bool AgCassandraCobClient::recv_describe_cluster_name(ExErrorFunction errorFunc,
       return true;
     }
 
-    ::apache::thrift::TApplicationException ex(::apache::thrift::TApplicationException::MISSING_RESULT, "describe_cluster_name failed: unknown result");
-    errorFunc(&ex);
+    errorFunc(Error(Error::ApplicationException, "describe_cluster_name failed: unknown result"));
     return false;
   } catch (const std::exception& e){
-    errorFunc(&e);
+    errorFunc(Error(Error::GenericException, e.what()));
     return false;
   }
 }
@@ -106,26 +103,25 @@ bool AgCassandraCobClient::recv_execute_cql_query(ExErrorFunction errorFunc, ::o
       return true;
     }
     if (result.__isset.ire) {
-      errorFunc(&result.ire);
+      errorFunc(Error(Error::InvalidRequestException, result.ire.why));
       return false;
     }
     if (result.__isset.ue) {
-      errorFunc(&result.ue);
+      errorFunc(Error(Error::UnavailableException, result.ue.what()));
       return false;
     }
     if (result.__isset.te) {
-      errorFunc(&result.te);
+      errorFunc(Error(Error::TimedOutException, result.te.what()));
       return false;
     }
     if (result.__isset.sde) {
-      errorFunc(&result.sde);
+      errorFunc(Error(Error::SchemaDisagreementException, result.sde.what()));
       return false;
     }
-    ::apache::thrift::TApplicationException ex(::apache::thrift::TApplicationException::MISSING_RESULT, "execute_cql_query failed: unknown result");
-    errorFunc(&ex);
+    errorFunc(Error(Error::ApplicationException, "execute_cql_query failed: unknown result"));
     return false;
    } catch (const std::exception& e){
-    errorFunc(&e);
+    errorFunc(Error::TranslateException(&e));
     return false;
   }
 }

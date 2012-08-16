@@ -25,7 +25,7 @@ class Client : public boost::enable_shared_from_this<Client>
   private:
     void ensureConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr connection)> continuation);
     void ensureConnection_done(CassandraConnection::Ptr connection, boost::function<void(CassandraConnection::Ptr connection)> continuation);
-    void generic_RetryError(const std::exception* error, ErrorFunction errorFunc, boost::function<void()> retryFunc);
+    void generic_RetryError(const Error& error, ErrorFunction errorFunc, boost::function<void()> retryFunc);
     void generic_ReconnectWaitDone(const boost::system::error_code& error, ErrorFunction errorFunc, boost::function<void()> retryFunc);
 
     ConnectionFactory::Ptr                m_ConnectionFactory;

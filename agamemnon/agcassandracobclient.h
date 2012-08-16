@@ -4,13 +4,14 @@
 #include "../thriftcassandra/Cassandra.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include "agamemnon_types.h"
 
 namespace teamspeak{
 namespace agamemnon{
   
   class AgCassandraCobClient : public ::org::apache::cassandra::CassandraCobClient{
     public:
-      typedef boost::function<void(const std::exception*)> ExErrorFunction;
+      typedef boost::function<void(const Error&)> ExErrorFunction;
       AgCassandraCobClient(boost::shared_ptr< ::apache::thrift::async::TAsyncChannel> channel, ::apache::thrift::protocol::TProtocolFactory* protocolFactory)
       : CassandraCobClient(channel, protocolFactory)
       {

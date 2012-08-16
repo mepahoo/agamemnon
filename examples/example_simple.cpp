@@ -9,9 +9,9 @@ using namespace std;
 
 boost::asio::io_service IOService;
 
-void errorFunction(const std::exception* error)
+void errorFunction(const Error& error)
 {
-  cerr << error->what() << endl;
+  cerr << error.message << endl;
   IOService.stop();
 }
 

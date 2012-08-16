@@ -112,8 +112,7 @@ void SingleConnectionFactory::PrivImpl::resolveHandler(const boost::system::erro
 	}
       }
       
-      ::apache::thrift::transport::TTransportException errorParam(::apache::thrift::transport::TTransportException::UNKNOWN, "Unable to resolve host");
-      errorFunc(&errorParam);
+      errorFunc(Error(Error::TransportException, "Unable to resolve host"));
       
     } else {
        CassandraConnectionChannel* channel = new CassandraConnectionChannel(m_Resolver.get_io_service(), m_ConnectionCommonSettings.ioTimeoutms, m_ConnectionCommonSettings.replyTimeoutms);
@@ -153,8 +152,7 @@ void SingleConnectionFactory::PrivImpl::connected(boost::shared_ptr< ::apache::t
 	  m_Busy = false;
 	} 
       }
-      ::apache::thrift::transport::TTransportException errorParam(::apache::thrift::transport::TTransportException::UNKNOWN, "Unable to connect to resolved host");
-      errorFunc(&errorParam);
+      errorFunc(Error(Error::TransportException, "Unable to connect to resolved host"));
   }
 }
 

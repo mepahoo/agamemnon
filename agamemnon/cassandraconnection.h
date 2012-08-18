@@ -7,6 +7,7 @@
 #include <boost/enable_shared_from_this.hpp>
 
 #include "agamemnon_types.h"
+#include "agtimer.h"
 
 namespace teamspeak{
 namespace agamemnon{
@@ -40,6 +41,7 @@ class CassandraConnection : public boost::enable_shared_from_this<CassandraConne
     AgCassandraCobClient* m_AgCassandraCobClient;
     std::string           m_Host;
     bool                  m_NeedToCloseWhenDone;
+    Timer                 m_Timer;
 };
 
 } //namespace teamspeak

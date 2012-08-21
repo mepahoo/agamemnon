@@ -126,6 +126,26 @@ bool AgCassandraCobClient::recv_execute_cql_query(ExErrorFunction errorFunc, ::o
   }
 }
 
+bool AgCassandraCobClient::recv_set_cql_version(ExErrorFunction errorFunc)
+{
+  try{
+    if (!common_recv(errorFunc, "set_cql_version")) return false;
+    ::org::apache::cassandra::Cassandra_set_cql_version_presult result;
+    result.read(iprot_);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+
+    if (result.__isset.ire) {
+      errorFunc(Error(Error::InvalidRequestException, result.ire.why));
+      return false;
+    }
+    return true;
+  } catch (const std::exception& e){
+    errorFunc(Error::TranslateException(&e));
+    return false;
+  }
+}
+
 
 } //namespace teamspeak
 } //namespace agamemnon

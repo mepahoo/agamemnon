@@ -12,9 +12,10 @@ namespace agamemnon{
 
 struct ConnectionCommonSettings
 {
-  ConnectionCommonSettings() : port(9160), keyspace(), retryDelayOnTimeoutms(5000), connectTimeoutms(1000), ioTimeoutms(1000), replyTimeoutms(5000), maxConnectionReuseCount(100), maxRetryCount(3){}
+  ConnectionCommonSettings() : port(9160), keyspace(), CQLVersion("3.0.0"), retryDelayOnTimeoutms(5000), connectTimeoutms(1000), ioTimeoutms(1000), replyTimeoutms(5000), maxConnectionReuseCount(100), maxRetryCount(3){}
   uint16_t    port;
   std::string keyspace;
+  std::string CQLVersion;
   int         retryDelayOnTimeoutms;
   int         connectTimeoutms;
   int         ioTimeoutms;

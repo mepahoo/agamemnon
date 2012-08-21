@@ -15,20 +15,27 @@ void errorFunction(const Error& error)
   IOService.stop();
 }
 
-void getClusterNameDone(const std::string& clustername)
+void getData(CQLQueryResult::Ptr)
+{
+  IOService.stop();
+}
+
+void getClusterNameDone(Client::Ptr client, const std::string& clustername)
 {
   cout << "Clustername of localhost is: " << clustername << endl;
-  IOService.stop();
+  client->excecuteCQL("select * from data;", errorFunction, getData);
 }
 
 int main(int argc, const char* argv[] )
 {
 
       ConnectionCommonSettings connectionCommonSettings;
+      connectionCommonSettings.keyspace = "tstest";
+      
       ConnectionFactory::Ptr connectionFactory(new SingleConnectionFactory(IOService, "127.0.0.1", connectionCommonSettings));
       Client::Ptr client( new Client(IOService, connectionFactory));
  
-      client->getClusterName(errorFunction, getClusterNameDone);
+      client->getClusterName(errorFunction, boost::bind(&getClusterNameDone, client, _1));
       
       IOService.run();
       

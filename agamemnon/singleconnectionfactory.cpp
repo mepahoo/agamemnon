@@ -123,23 +123,14 @@ void SingleConnectionFactory::PrivImpl::resolveHandler(const boost::system::erro
 
 void SingleConnectionFactory::PrivImpl::connected(boost::shared_ptr< ::apache::thrift::async::TAsyncChannel> channelPtr)
 {
-
   if (channelPtr->good()){
-      RequestQueueItem item;
-      {
-        boost::lock_guard<boost::mutex> lock(m_Mutex);
-	item = m_Callbacks.front();
-	m_Callbacks.pop();
-      }
-      
       AgCassandraCobClient* agClient = new AgCassandraCobClient(channelPtr, m_ProtocolFactory);
       CassandraConnection::Ptr cassandraConnection = createConnectionSharedPointer(new CassandraConnection(agClient));
-      if (m_ConnectionCommonSettings.keyspace.empty()){
-	item.callback(cassandraConnection);
-      } else {
-	/*set keyspace before returning connection to client*/
-	cassandraConnection->setKeyspace(m_ConnectionCommonSettings.keyspace, item.errorFunc, boost::bind(item.callback, cassandraConnection));
-      }
+      cassandraConnection->setCQLVersion(m_ConnectionCommonSettings.CQLVersion, 
+					 boost::bind(&SingleConnectionFactory::PrivImpl::cqlVersionSet_fail, shared_from_this(), _1),
+					 boost::bind(&SingleConnectionFactory::PrivImpl::cqlVersionSet, shared_from_this(), cassandraConnection)
+					 );
+      
   } else {
       ErrorFunction errorFunc;
       {
@@ -154,6 +145,39 @@ void SingleConnectionFactory::PrivImpl::connected(boost::shared_ptr< ::apache::t
       }
       errorFunc(Error(Error::TransportException, "Unable to connect to resolved host"));
   }
+}
+
+void SingleConnectionFactory::PrivImpl::cqlVersionSet(CassandraConnection::Ptr connection)
+{
+    RequestQueueItem item;
+    {
+      boost::lock_guard<boost::mutex> lock(m_Mutex);
+      item = m_Callbacks.front();
+      m_Callbacks.pop();
+    }
+
+    if (m_ConnectionCommonSettings.keyspace.empty()){
+	item.callback(connection);
+    } else {
+      /*set keyspace before returning connection to client*/
+      connection->setKeyspace(m_ConnectionCommonSettings.keyspace, item.errorFunc, boost::bind(item.callback, connection));
+    }
+}
+
+void SingleConnectionFactory::PrivImpl::cqlVersionSet_fail(Error error)
+{
+    ErrorFunction errorFunc;
+    {
+      boost::lock_guard<boost::mutex> lock(m_Mutex);
+      errorFunc = m_Callbacks.front().errorFunc;
+      m_Callbacks.pop();
+      if (!m_Callbacks.empty()){
+	startNewConnection();
+      } else {
+	m_Busy = false;
+      } 
+    }
+    errorFunc(Error(Error::TransportException, "Unable to set cql version"));
 }
 
 void SingleConnectionFactory::PrivImpl::connectionDone(CassandraConnection* connection)

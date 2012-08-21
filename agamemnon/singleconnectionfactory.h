@@ -32,6 +32,8 @@ class SingleConnectionFactory : public ConnectionFactory
 	void startNewConnection();
         void resolveHandler(const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator);
 	void connected(boost::shared_ptr< ::apache::thrift::async::TAsyncChannel> channelPtr);
+	void cqlVersionSet(CassandraConnection::Ptr connection);
+	void cqlVersionSet_fail(Error error);
 	void connectionDone(CassandraConnection* connection);
 	CassandraConnection::Ptr createConnectionSharedPointer(CassandraConnection* connection);
 

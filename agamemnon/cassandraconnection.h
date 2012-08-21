@@ -8,6 +8,7 @@
 
 #include "agamemnon_types.h"
 #include "agtimer.h"
+#include "agcqlqueryresult.h"
 
 namespace teamspeak{
 namespace agamemnon{
@@ -27,16 +28,20 @@ class CassandraConnection : public boost::enable_shared_from_this<CassandraConne
     ~CassandraConnection();
     
     void setKeyspace(const std::string& keyspace, ErrorFunction errorFunc, boost::function<void()> callback);
+    void setCQLVersion(const std::string& version, ErrorFunction errorFunc, boost::function<void()> callback);
     
     const std::string& getHost() const {return m_Host;}
     const bool needToCloseWhenDone() const { return m_NeedToCloseWhenDone;}
     
     void getClusterName(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
+    void executeCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback);
     
     void setNeedToCloseWhenDone();
   private:
     void setKeyspace_done(ErrorFunction errorFunc, boost::function<void()> callback);
-    void getClusterName_Done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
+    void setCQLVersion_done(ErrorFunction errorFunc, boost::function<void()> callback);
+    void getClusterName_done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
+    void executeCQL_done(ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback);
     
     AgCassandraCobClient* m_AgCassandraCobClient;
     std::string           m_Host;

@@ -28,11 +28,27 @@ void CassandraConnection::setKeyspace(const std::string& keyspace, ErrorFunction
 					    ::org::apache::cassandra::Compression::NONE);
   
 }
+
+void CassandraConnection::setCQLVersion(const std::string& version, ErrorFunction errorFunc, boost::function<void()> callback)
+{
+  m_AgCassandraCobClient->resetBuffers();
+  m_AgCassandraCobClient->set_cql_version (boost::bind(&CassandraConnection::setCQLVersion_done, shared_from_this(), errorFunc, callback),
+					    version);
+}
     
 void CassandraConnection::getClusterName(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback){
   m_AgCassandraCobClient->resetBuffers();
   m_Timer.reset();
-  m_AgCassandraCobClient->describe_cluster_name(boost::bind(&CassandraConnection::getClusterName_Done, shared_from_this(), errorFunc, callback));
+  m_AgCassandraCobClient->describe_cluster_name(boost::bind(&CassandraConnection::getClusterName_done, shared_from_this(), errorFunc, callback));
+}
+
+void CassandraConnection::executeCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+{
+  m_AgCassandraCobClient->resetBuffers();
+  m_Timer.reset();
+  m_AgCassandraCobClient->execute_cql_query(boost::bind(&CassandraConnection::executeCQL_done, shared_from_this(), errorFunc, callback),
+					    cql,
+					    ::org::apache::cassandra::Compression::NONE);
 }
 
 void CassandraConnection::setNeedToCloseWhenDone()
@@ -48,7 +64,14 @@ void CassandraConnection::setKeyspace_done(ErrorFunction errorFunc, boost::funct
   callback();
 }
 
-void CassandraConnection::getClusterName_Done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback){
+void CassandraConnection::setCQLVersion_done(ErrorFunction errorFunc, boost::function<void()> callback)
+{
+  if (!m_AgCassandraCobClient->checkTransportErrors(errorFunc)) return;
+  if (!m_AgCassandraCobClient->recv_set_cql_version (errorFunc)) return;
+  callback();
+}
+
+void CassandraConnection::getClusterName_done(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback){
   std::string result;
   
   std::cout <<"GetCluserName time: "<< m_Timer.msElapsed()<<"ms"<<std::endl;
@@ -57,6 +80,15 @@ void CassandraConnection::getClusterName_Done(ErrorFunction errorFunc, boost::fu
   if (!m_AgCassandraCobClient->recv_describe_cluster_name(errorFunc, result)) return;
   callback(result);
 }
-    
+
+void CassandraConnection::executeCQL_done(ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+{
+  CQLQueryResult::Ptr result(new CQLQueryResult());
+  if (!m_AgCassandraCobClient->checkTransportErrors(errorFunc)) return;
+  if (!m_AgCassandraCobClient->recv_execute_cql_query(errorFunc, *result->m_Result)) return;
+  if (!result->parse(errorFunc)) return;
+  callback(result);
+}
+
 } //namespace teamspeak
 } //namespace agamemnon

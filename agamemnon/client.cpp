@@ -30,6 +30,20 @@ void Client::getClusterName(ErrorFunction errorFunc, boost::function<void(const 
   ensureConnection(retryErrorFunc, requestClusterNameFunc);
 }
 
+void Client::excecuteCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+{
+ boost::function<void()> retryFunc =
+    boost::bind(&Client::excecuteCQL, shared_from_this(), cql, errorFunc, callback);
+
+  ErrorFunction retryErrorFunc =
+    boost::bind(&Client::generic_RetryError, shared_from_this(), _1, errorFunc, retryFunc);
+      
+  boost::function<void(CassandraConnection::Ptr connection)> executeCqlFunc =
+    boost::bind( &CassandraConnection::executeCQL, _1, cql, retryErrorFunc, callback);
+    
+  ensureConnection(retryErrorFunc, executeCqlFunc);
+}
+
 void Client::ensureConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr connection)> continuation)
 {
   if (m_Connection.get()){

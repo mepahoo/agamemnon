@@ -27,12 +27,20 @@ class ConversionException : public std::exception
     std::string m_Msg;
 };
 
-class IndexOutOfRange : public std::exception
+class IndexOutOfRangeException : public std::exception
 {
   public:
-    IndexOutOfRange() : std::exception(){};
-    virtual ~IndexOutOfRange() throw() {};
+    IndexOutOfRangeException() : std::exception(){};
+    virtual ~IndexOutOfRangeException() throw() {};
     virtual const char* what() const throw() { return "Index out of range"; }
+};
+
+class ParseException : public std::exception
+{
+  public:
+    ParseException() : std::exception(){};
+    virtual ~ParseException() throw() {};
+    virtual const char* what() const throw() { return "Parse error"; }
 };
 
 class CQLQueryResult
@@ -40,43 +48,54 @@ class CQLQueryResult
   public:
     typedef boost::shared_ptr<CQLQueryResult> Ptr;
     
-    enum ColumDataType {UNKNOWN, ASCII, BIGINT, BLOB, BOOLEAN, COUNTER, DECIMAL, DOUBLE, FLOAT, INT, TEXT, TIMESTAMP, UUID, VARCHAR, VARINT};
+    enum ColumnDataType {UNKNOWN, ASCII, INT64, BYTES, BOOLEAN, COUNTER, DECIMAL, DOUBLE, FLOAT, INT32, UTF8, DATE, UUID, INTEGER};
     
+    static const size_t npos = -1;
     class CQLColumnValue
     {
       public:
-	CQLColumnValue(const ::org::apache::cassandra::Column& column, ColumDataType cdt);
+	CQLColumnValue(const ::org::apache::cassandra::Column& column, ColumnDataType cdt);
 	const std::string&        asString() const;
-	std::string               asBlob() const;
+	std::string               asHex() const;
 	std::string               asUUID() const;
 	int64_t                   asInt64() const;
 	bool                      asBool() const;
 	double                    asDouble() const;
 	float                     asFloat() const;
 	int                       asInt() const;
-	boost::posix_time::ptime  asDataTime() const;
+	boost::posix_time::ptime  asDateTime() const;
 	//virtual --                asDecimal() const;
+	int64_t                   writeTime() const;
+	int                       TTL() const;
+	bool                      hasWriteTime() const;
+	bool                      hasTTL() const;
       private:
 	const ::org::apache::cassandra::Column& m_Column;
-	ColumDataType                           m_cdt;
+	ColumnDataType                          m_cdt;
 	
 	friend class CQLQueryResult;
     };
 
     ~CQLQueryResult();
 
+    bool wasVoidReturn() const;
+    bool wasIntReturn() const;
+    bool wasRowsReturn() const;
     bool hasColumns() const;
-    int getColumnCount() const;
-    int getRowCount() const;
-    ColumDataType getColumnType(int colIdx) const;
-    std::string& getColumnName(int colIdx) const;
-    const CQLColumnValue get(int rowIdx, int colIdx) const;
+    size_t getColumnCount() const;
+    size_t getRowCount() const;
+    ColumnDataType getColumnType(size_t colIdx) const;
+    std::string& getColumnName(size_t colIdx) const;
+    size_t indexOfColumnName(const std::string& colName) const;
+    const CQLColumnValue get(size_t rowIdx, size_t colIdx) const;
   
   private:
     CQLQueryResult();
     bool parse(ErrorFunction errorFunc);
     ::org::apache::cassandra::CqlResult* m_Result;
-    std::vector<ColumDataType>           m_ColDataTypes;
+    std::vector<ColumnDataType>          m_ColDataTypes;
+    
+    static std::map<std::string, ColumnDataType> s_DataStringToType;
     
     friend class CassandraConnection;
 };

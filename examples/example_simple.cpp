@@ -40,6 +40,7 @@ void getDataDone(CQLQueryResult::Ptr cqlresult, Client::Ptr client, size_t cqlId
     size_t totalWidth = 0;
     for (size_t i=0; i < cqlresult->getColumnCount(); ++i)
     {
+      /*calc max col size*/
       maxSize[i] = std::min<size_t>(30,cqlresult->getColumnName(i).size());
       
       /*write the header*/
@@ -55,7 +56,7 @@ void getDataDone(CQLQueryResult::Ptr cqlresult, Client::Ptr client, size_t cqlId
     }
     std::cout <<std::endl;
     
-    /*write line*/
+    /*write header line*/
     std::cout.fill('-');
     std::cout.width(totalWidth);
     std::cout<<"-"<<std::endl;

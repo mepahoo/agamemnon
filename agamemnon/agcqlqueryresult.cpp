@@ -1,6 +1,7 @@
 #include "agcqlqueryresult.h"
 
 #include <boost/assign.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "../thriftcassandra/cassandra_types.h"
 
@@ -24,6 +25,92 @@ std::map<std::string, CQLQueryResult::ColumnDataType> CQLQueryResult::s_DataStri
      ("DateType", CQLQueryResult::DATE)
      ("UUIDType", CQLQueryResult::UUID)
      ("IntegerType", CQLQueryResult::INTEGER);
+     
+CQLQueryResult::CQLColumnValue::CQLColumnValue(const ::org::apache::cassandra::Column& column, CQLQueryResult::ColumnDataType cdt)
+: m_Column(column)
+, m_Cdt(cdt)
+{
+}
+
+bool CQLQueryResult::CQLColumnValue::isNull() const
+{
+  return m_Column.value.empty();
+}
+
+std::string CQLQueryResult::CQLColumnValue::asString() const
+{
+  if (isNull()) return "null";
+  switch (m_Cdt) 
+  {
+    case INT64:
+      return boost::lexical_cast<std::string>(intAsInt64());
+    case BYTES:
+      return "'"+Bytes::bytesStringToHex(m_Column.value)+"'";
+    case BOOLEAN:
+      return intAsBool()? "true" : "false";
+    case COUNTER:
+      return boost::lexical_cast<std::string>(intAsInt64());
+    case DOUBLE:
+      return boost::lexical_cast<std::string>(intAsDouble());
+    case FLOAT:
+      return boost::lexical_cast<std::string>(intAsFloat());
+    case INT32:
+      return boost::lexical_cast<std::string>(intAsInt());
+    case DATE:
+      return "'"+boost::posix_time::to_iso_extended_string(intAsDateTime())+"'";
+    case UUID:
+      ::teamspeak::agamemnon::UUID::bytesToString(m_Column.value);
+    default:
+      return "'"+m_Column.value+"'";
+  }
+}
+
+const std::string& CQLQueryResult::CQLColumnValue::asBytes() const
+{
+  if (m_Cdt != CQLQueryResult::BYTES) throw ConversionException();
+  return m_Column.value;
+}
+
+int64_t  CQLQueryResult::CQLColumnValue::asInt64() const
+{
+  switch (m_Cdt) 
+  {
+    case INT64: 
+    case COUNTER:
+      return intAsInt64();
+    case DOUBLE:
+      return intAsDouble();
+    case FLOAT:
+      return intAsFloat();
+    case INT32:
+      return intAsInt();
+    default:
+      throw ConversionException();
+  }
+}
+
+bool CQLQueryResult::CQLColumnValue::asBool() const;
+double CQLQueryResult::CQLColumnValue::asDouble() const;
+float CQLQueryResult::CQLColumnValue::asFloat() const;
+int CQLQueryResult::CQLColumnValue::asInt() const;
+boost::posix_time::ptime CQLQueryResult::CQLColumnValue::asDateTime() const;
+//virtual --                CQLQueryResult::CQLColumnValue::asDecimal() const;
+int64_t CQLQueryResult::CQLColumnValue::writeTime() const;
+int CQLQueryResult::CQLColumnValue::TTL() const;
+bool CQLQueryResult::CQLColumnValue::hasWriteTime() const;
+bool  CQLQueryResult::CQLColumnValue::hasTTL() const;
+int64_t CQLQueryResult::CQLColumnValue::intAsInt64() const;
+bool CQLQueryResult::CQLColumnValue::intAsBool() const
+{
+  if (m_Column.value.size()==1 && m_Column.value.data[0]==0) return false;
+  return true;
+}
+
+double                    CQLQueryResult::CQLColumnValue::intAsDouble() const;
+float                     CQLQueryResult::CQLColumnValue::intAsFloat() const;
+int                       CQLQueryResult::CQLColumnValue::intAsInt() const;
+boost::posix_time::ptime  CQLQueryResult::CQLColumnValue::intAsDateTime() const;
+
 
 CQLQueryResult::CQLQueryResult() : m_ColDataTypes()
 {
@@ -91,23 +178,6 @@ size_t CQLQueryResult::indexOfColumnName(const std::string& colName) const
   return npos;
 }
 //const CQLQueryResult::CQLColumnValue CQLQueryResult::get(int rowIdx, int colIdx) const;
-
-/*
-datatypes from cassandra
-        comparators.put("ascii", "AsciiType");
-        comparators.put("bigint", "LongType");
-        comparators.put("blob", "BytesType");
-        comparators.put("boolean", "BooleanType");
-        comparators.put("counter", "CounterColumnType");
-        comparators.put("decimal", "DecimalType");
-        comparators.put("double", "DoubleType");
-        comparators.put("float", "FloatType");
-        comparators.put("int", "Int32Type");
-        comparators.put("text", "UTF8Type");
-        comparators.put("timestamp", "DateType");
-        comparators.put("uuid", "UUIDType");
-        comparators.put("varint", "IntegerType");
-*/
 
 bool CQLQueryResult::parse(ErrorFunction errorFunc)
 {

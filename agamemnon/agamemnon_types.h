@@ -35,6 +35,45 @@ namespace agamemnon{
   };
 
   typedef boost::function<void(Error)> ErrorFunction;
+  class Bytes;
+  
+  class UUID
+  {
+    public:
+      UUID();
+      UUID(const std::string& UUIDString);
+      UUID(Bytes& bytes);
+      
+      void setAsBytes(const char* UUIDbytes); //16 bytes implied
+      
+      std::string asString() const;
+      const std::string& asBytesString() const;
+      Bytes asBytes() const;
+      
+      bool isValid() const { return m_Data.size() == 16; }
+      
+      static std::string bytesToString(const std::string& bytesString);
+      static std::string UUIDToBytesString(const std::string& UUIDString);
+    private:
+      std::string m_Data;
+  };
+  
+  class Bytes
+  {
+    public:
+      Bytes(const std::string& bytes);
+      Bytes(const char* bytes, size_t len);
+      
+      size_t size() const;
+      const char* data() const;
+      const std::string& asString() const;
+      std::string asHexString() const;
+      
+      static std::string hexToBytesString(const std::string& hexString);
+      static std::string bytesStringToHex(const std::string& bytes);
+    private:
+      std::string m_Data;
+  };
 
 } //namespace teamspeak
 } //namespace agamemnon

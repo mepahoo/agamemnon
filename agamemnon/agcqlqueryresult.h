@@ -55,9 +55,9 @@ class CQLQueryResult
     {
       public:
 	CQLColumnValue(const ::org::apache::cassandra::Column& column, ColumnDataType cdt);
-	const std::string&        asString() const;
-	std::string               asHex() const;
-	std::string               asUUID() const;
+	bool                      isNull() const;
+	std::string               asString() const;
+	const std::string&        asBytes() const;
 	int64_t                   asInt64() const;
 	bool                      asBool() const;
 	double                    asDouble() const;
@@ -70,8 +70,15 @@ class CQLQueryResult
 	bool                      hasWriteTime() const;
 	bool                      hasTTL() const;
       private:
+	int64_t                   intAsInt64() const;
+	bool                      intAsBool() const;
+	double                    intAsDouble() const;
+	float                     intAsFloat() const;
+	int                       intAsInt() const;
+	boost::posix_time::ptime  intAsDateTime() const;
+	
 	const ::org::apache::cassandra::Column& m_Column;
-	ColumnDataType                          m_cdt;
+	ColumnDataType                          m_Cdt;
 	
 	friend class CQLQueryResult;
     };

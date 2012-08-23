@@ -20,11 +20,9 @@ namespace agamemnon{
 class ConversionException : public std::exception
 {
   public:
-    ConversionException(const std::string& msg) : std::exception(), m_Msg(msg){};
+    ConversionException() : std::exception(){};
     virtual ~ConversionException() throw() {};
-    virtual const char* what() const throw() { return m_Msg.c_str(); }
-  private:
-    std::string m_Msg;
+    virtual const char* what() const throw() { return "ConversionException";}
 };
 
 class IndexOutOfRangeException : public std::exception
@@ -49,6 +47,7 @@ class CQLQueryResult
     typedef boost::shared_ptr<CQLQueryResult> Ptr;
     
     enum ColumnDataType {UNKNOWN, ASCII, INT64, BYTES, BOOLEAN, COUNTER, DECIMAL, DOUBLE, FLOAT, INT32, UTF8, DATE, UUID, INTEGER};
+    enum TimeAdjust{ LOCALTIME, UTCTIME};
     
     static const size_t npos = -1;
     class CQLColumnValue
@@ -63,7 +62,7 @@ class CQLQueryResult
 	double                    asDouble() const;
 	float                     asFloat() const;
 	int                       asInt() const;
-	boost::posix_time::ptime  asDateTime() const;
+	boost::posix_time::ptime  asDateTime(TimeAdjust ta = UTCTIME) const;
 	//virtual --                asDecimal() const;
 	int64_t                   writeTime() const;
 	int                       TTL() const;
@@ -75,7 +74,7 @@ class CQLQueryResult
 	double                    intAsDouble() const;
 	float                     intAsFloat() const;
 	int                       intAsInt() const;
-	boost::posix_time::ptime  intAsDateTime() const;
+	boost::posix_time::ptime  intAsDateTime(TimeAdjust ta) const;
 	
 	const ::org::apache::cassandra::Column& m_Column;
 	ColumnDataType                          m_Cdt;
@@ -96,6 +95,9 @@ class CQLQueryResult
     size_t indexOfColumnName(const std::string& colName) const;
     const CQLColumnValue get(size_t rowIdx, size_t colIdx) const;
   
+    //static std::string escapeString(const std::string& s, bool quote = true);
+    //static std::string blobToHexString(const std::string& blob, bool quote = true);
+    //static std::string ptimeToString(const boost::posix_time::ptime& t, bool quote = true, TimeAdjust ta=UTCTIME);
   private:
     CQLQueryResult();
     bool parse(ErrorFunction errorFunc);

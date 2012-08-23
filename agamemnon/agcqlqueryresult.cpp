@@ -2,10 +2,33 @@
 
 #include <boost/assign.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/date_time/c_local_time_adjustor.hpp>
 
 #include "../thriftcassandra/cassandra_types.h"
 
 #include <iostream>
+
+#ifdef WIN32
+  #define be64toh(x) \
+	((u_int64_t)( \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000000000ffULL) << 56) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000000000ff00ULL) << 40) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000000000ff0000ULL) << 24) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00000000ff000000ULL) <<  8) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x000000ff00000000ULL) >>  8) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x0000ff0000000000ULL) >> 24) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0x00ff000000000000ULL) >> 40) | \
+			(u_int64_t)(((u_int64_t)(x) & (u_int64_t)0xff00000000000000ULL) >> 56) ))
+			
+	#define be32toh(x) \
+	((u_int32_t)( \
+			(((u_int32_t)(x) & (u_int32_t)0x000000ffUL) << 24) | \
+			(((u_int32_t)(x) & (u_int32_t)0x0000ff00UL) <<  8) | \
+			(((u_int32_t)(x) & (u_int32_t)0x00ff0000UL) >>  8) | \
+			(((u_int32_t)(x) & (u_int32_t)0xff000000UL) >> 24) ))
+#else
+#include <endian.h>
+#endif
 
 namespace teamspeak{
 namespace agamemnon{
@@ -34,7 +57,8 @@ CQLQueryResult::CQLColumnValue::CQLColumnValue(const ::org::apache::cassandra::C
 
 bool CQLQueryResult::CQLColumnValue::isNull() const
 {
-  return m_Column.value.empty();
+  if (!m_Column.value.empty()) return false;
+  return !m_Column.__isset.timestamp;
 }
 
 std::string CQLQueryResult::CQLColumnValue::asString() const
@@ -45,7 +69,7 @@ std::string CQLQueryResult::CQLColumnValue::asString() const
     case INT64:
       return boost::lexical_cast<std::string>(intAsInt64());
     case BYTES:
-      return "'"+Bytes::bytesStringToHex(m_Column.value)+"'";
+      return Bytes::bytesStringToHex(m_Column.value);
     case BOOLEAN:
       return intAsBool()? "true" : "false";
     case COUNTER:
@@ -57,11 +81,11 @@ std::string CQLQueryResult::CQLColumnValue::asString() const
     case INT32:
       return boost::lexical_cast<std::string>(intAsInt());
     case DATE:
-      return "'"+boost::posix_time::to_iso_extended_string(intAsDateTime())+"'";
+      return boost::posix_time::to_iso_extended_string(intAsDateTime(LOCALTIME));
     case UUID:
-      ::teamspeak::agamemnon::UUID::bytesToString(m_Column.value);
+      return ::teamspeak::agamemnon::UUID::bytesToString(m_Column.value);
     default:
-      return "'"+m_Column.value+"'";
+      return m_Column.value;
   }
 }
 
@@ -89,27 +113,148 @@ int64_t  CQLQueryResult::CQLColumnValue::asInt64() const
   }
 }
 
-bool CQLQueryResult::CQLColumnValue::asBool() const;
-double CQLQueryResult::CQLColumnValue::asDouble() const;
-float CQLQueryResult::CQLColumnValue::asFloat() const;
-int CQLQueryResult::CQLColumnValue::asInt() const;
-boost::posix_time::ptime CQLQueryResult::CQLColumnValue::asDateTime() const;
+bool CQLQueryResult::CQLColumnValue::asBool() const
+{
+  if (m_Cdt!=BOOLEAN) throw ConversionException();
+  return intAsBool();
+}
+
+double CQLQueryResult::CQLColumnValue::asDouble() const
+{
+   switch (m_Cdt) 
+  {
+    case INT64: 
+    case COUNTER:
+      return intAsInt64();
+    case DOUBLE:
+      return intAsDouble();
+    case FLOAT:
+      return intAsFloat();
+    case INT32:
+      return intAsInt();
+    default:
+      throw ConversionException();
+  }
+}
+
+float CQLQueryResult::CQLColumnValue::asFloat() const
+{
+   switch (m_Cdt) 
+  {
+    case INT64: 
+    case COUNTER:
+      return intAsInt64();
+    case DOUBLE:
+      return intAsDouble();
+    case FLOAT:
+      return intAsFloat();
+    case INT32:
+      return intAsInt();
+    default:
+      throw ConversionException();
+  }
+}
+
+int CQLQueryResult::CQLColumnValue::asInt() const
+{
+   switch (m_Cdt) 
+  {
+    case INT64: 
+    case COUNTER:
+      return intAsInt64();
+    case DOUBLE:
+      return intAsDouble();
+    case FLOAT:
+      return intAsFloat();
+    case INT32:
+      return intAsInt();
+    default:
+      throw ConversionException();
+  }
+}
+
+boost::posix_time::ptime CQLQueryResult::CQLColumnValue::asDateTime(TimeAdjust ta) const
+{
+  if (m_Cdt != DATE) throw ConversionException();
+  return intAsDateTime(ta);
+}
+
 //virtual --                CQLQueryResult::CQLColumnValue::asDecimal() const;
-int64_t CQLQueryResult::CQLColumnValue::writeTime() const;
-int CQLQueryResult::CQLColumnValue::TTL() const;
-bool CQLQueryResult::CQLColumnValue::hasWriteTime() const;
-bool  CQLQueryResult::CQLColumnValue::hasTTL() const;
-int64_t CQLQueryResult::CQLColumnValue::intAsInt64() const;
+
+int64_t CQLQueryResult::CQLColumnValue::writeTime() const
+{
+  return m_Column.timestamp;
+}
+
+int CQLQueryResult::CQLColumnValue::TTL() const
+{
+  return m_Column.ttl;
+}
+
+bool CQLQueryResult::CQLColumnValue::hasWriteTime() const
+{
+  return m_Column.__isset.timestamp;
+}
+
+bool  CQLQueryResult::CQLColumnValue::hasTTL() const
+{
+  return m_Column.__isset.ttl;
+}
+
+int64_t CQLQueryResult::CQLColumnValue::intAsInt64() const
+{
+  BOOST_ASSERT(m_Column.value.size()==8);
+  const uint64_t* data = reinterpret_cast<const uint64_t*>(m_Column.value.data());
+  return static_cast<int64_t>(be64toh(*data));
+}
+
 bool CQLQueryResult::CQLColumnValue::intAsBool() const
 {
-  if (m_Column.value.size()==1 && m_Column.value.data[0]==0) return false;
+  if ((m_Column.value.size()==1) && (m_Column.value.data()[0]==0)) return false;
   return true;
 }
 
-double                    CQLQueryResult::CQLColumnValue::intAsDouble() const;
-float                     CQLQueryResult::CQLColumnValue::intAsFloat() const;
-int                       CQLQueryResult::CQLColumnValue::intAsInt() const;
-boost::posix_time::ptime  CQLQueryResult::CQLColumnValue::intAsDateTime() const;
+double CQLQueryResult::CQLColumnValue::intAsDouble() const
+{
+  union {
+    int64_t i;
+    double  d;
+  } v;
+  BOOST_ASSERT(m_Column.value.size()==8);
+  v.i = static_cast<int64_t>(be64toh(*reinterpret_cast<const uint64_t*>(m_Column.value.data())));
+  return v.d;
+}
+
+float CQLQueryResult::CQLColumnValue::intAsFloat() const
+{
+  union {
+    int32_t i;
+    float   f;
+  } v;
+  BOOST_ASSERT(m_Column.value.size()==4);
+  v.i = static_cast<int32_t>(be32toh(*reinterpret_cast<const uint32_t*>(m_Column.value.data())));
+  return v.f;
+}
+
+int CQLQueryResult::CQLColumnValue::intAsInt() const
+{
+  BOOST_ASSERT(m_Column.value.size()==4);
+  return static_cast<int32_t>(be32toh(*reinterpret_cast<const uint32_t*>(m_Column.value.data())));
+  
+}
+
+boost::posix_time::ptime  CQLQueryResult::CQLColumnValue::intAsDateTime(TimeAdjust ta) const
+{
+  int64_t millisecsSinceEpoch = intAsInt64();
+  boost::posix_time::ptime time =  boost::posix_time::from_time_t(millisecsSinceEpoch/1000);
+  if (ta == LOCALTIME) {
+    typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
+    time =  local_adj::utc_to_local(time);
+  }
+  time += boost::posix_time::milliseconds(millisecsSinceEpoch % 1000);
+
+  return time;
+}
 
 
 CQLQueryResult::CQLQueryResult() : m_ColDataTypes()
@@ -177,7 +322,11 @@ size_t CQLQueryResult::indexOfColumnName(const std::string& colName) const
   }
   return npos;
 }
-//const CQLQueryResult::CQLColumnValue CQLQueryResult::get(int rowIdx, int colIdx) const;
+
+const CQLQueryResult::CQLColumnValue CQLQueryResult::get(size_t rowIdx, size_t colIdx) const
+{
+  return CQLQueryResult::CQLColumnValue( m_Result->rows[rowIdx].columns[colIdx], m_ColDataTypes[colIdx]);
+}
 
 bool CQLQueryResult::parse(ErrorFunction errorFunc)
 {
@@ -202,40 +351,6 @@ bool CQLQueryResult::parse(ErrorFunction errorFunc)
   }
   
   return true;
-  
-/*
-  if (m_Result->__isset.schema){
-    std::cout <<"Schema:" << std::endl<<"  default_name_type: "<< m_Result->schema.default_name_type << std::endl<<"  default_value_type: "<<m_Result->schema.default_value_type<<std::endl;
-    std::cout <<"  name_types"<<std::endl;
-    for(std::map<std::string, std::string>::const_iterator it = m_Result->schema.name_types.begin(); it !=m_Result->schema.name_types.end(); ++it){
-      std::cout<<"    "<<it->first<<" , "<<it->second<<std::endl;
-    }
-    std::cout <<"  value_types"<<std::endl;
-    for(std::map<std::string, std::string>::const_iterator it = m_Result->schema.value_types.begin(); it !=m_Result->schema.value_types.end(); ++it){
-      std::cout<<"    "<<it->first<<" , "<<it->second<<std::endl;
-    }
-  }
-  
-  if (m_Result->__isset.rows){
-    std::cout <<"Data:"<<std::endl;
-    for (size_t i=0; i < m_Result->rows.size(); ++i){
-      std::cout <<"  row "<<i<<": "<<std::endl<<"    key: "<<m_Result->rows[i].key<< std::endl;
-      for (size_t j = 0; j < m_Result->rows[i].columns.size(); ++j){
-	::org::apache::cassandra::Column& col = m_Result->rows[i].columns[j];
-	 std::cout <<" col:"<<j<<" name:"<<col.name;
-	 if (col.__isset.value) std::cout<<" value:'"<<col.value<<"'";
-	 if (col.__isset.timestamp) std::cout<<" writetime:"<<col.timestamp;
-	 if (col.__isset.ttl) std::cout<<" TTL:"<<col.ttl;
-	 std::cout <<std::endl;
-      }
-    }
-  }
-  
-  if (m_Result->__isset.num){
-    std::cout << "Num:"<<m_Result->num<<std::endl;
-  }
-  return true;
-  */
 }
     
 } //namespace teamspeak

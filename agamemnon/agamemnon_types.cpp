@@ -109,7 +109,7 @@ static void charsToHex(const char* src, char* dest, int byteCount)
 {
   const unsigned char* usrc = reinterpret_cast<const unsigned char*>(src);
   
-  static std::string chr="0123456789ABCDEF";
+  static std::string chr="0123456789abcdef";
   for(int i=0; i < byteCount; ++i)
   {
     unsigned char v = usrc[i];

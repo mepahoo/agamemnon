@@ -2,3 +2,5 @@ build/*
 .sconf_temp/*
 .sconsign.dblite
 **~
+*.kdev4
+config.log

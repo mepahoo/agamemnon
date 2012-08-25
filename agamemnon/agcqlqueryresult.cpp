@@ -81,7 +81,7 @@ std::string CQLQueryResult::CQLColumnValue::asString() const
     case INT32:
       return boost::lexical_cast<std::string>(intAsInt());
     case DATE:
-      return boost::posix_time::to_iso_extended_string(intAsDateTime(LOCALTIME));
+      return boost::posix_time::to_iso_extended_string(intAsDateTime(TA_LOCALTIME));
     case UUID:
       return ::teamspeak::agamemnon::UUID::bytesToString(m_Column.value);
     default:
@@ -247,7 +247,7 @@ boost::posix_time::ptime  CQLQueryResult::CQLColumnValue::intAsDateTime(TimeAdju
 {
   int64_t millisecsSinceEpoch = intAsInt64();
   boost::posix_time::ptime time =  boost::posix_time::from_time_t(millisecsSinceEpoch/1000);
-  if (ta == LOCALTIME) {
+  if (ta == TA_LOCALTIME) {
     typedef boost::date_time::c_local_adjustor<boost::posix_time::ptime> local_adj;
     time =  local_adj::utc_to_local(time);
   }

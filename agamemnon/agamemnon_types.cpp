@@ -228,5 +228,14 @@ std::string Bytes::bytesStringToHex(const std::string& bytes)
   return result;
 }
 
+/*static*/
+std::string Bytes::bytesStringToHex(const char * bytes, size_t bytesLen)
+{
+  std::string result(bytesLen*2, 0);
+  charsToHex(bytes, const_cast<char*>(result.data()), bytesLen);
+  return result;
+}
+
+
 } //namespace teamspeak
 } //namespace agamemnon

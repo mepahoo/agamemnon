@@ -24,10 +24,6 @@ class Client : public boost::enable_shared_from_this<Client>
     void getClusterName(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
     void excecuteCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback);
     
-    static std::string CQLEscapeString(const std::string& s);
-    static std::string CQLHexEncode(const std::string& s);
-    static std::string CQLHexEncode(const char* buffer, size_t len);
-    static std::string getTimeStamp();
   private:
     void ensureConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr connection)> continuation);
     void ensureConnection_done(CassandraConnection::Ptr connection, boost::function<void(CassandraConnection::Ptr connection)> continuation);

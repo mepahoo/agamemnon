@@ -6,6 +6,8 @@
 namespace teamspeak{
 namespace agamemnon{
   
+  enum TimeAdjust{ TA_LOCALTIME, TA_UTCTIME};
+      
   struct Error
   {
     enum Type
@@ -71,6 +73,7 @@ namespace agamemnon{
       
       static std::string hexToBytesString(const std::string& hexString);
       static std::string bytesStringToHex(const std::string& bytes);
+      static std::string bytesStringToHex(const char * bytes, size_t bytesLen);
     private:
       std::string m_Data;
   };

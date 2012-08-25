@@ -1,22 +1,56 @@
 #include "agcqlquery.h"
 
 #include <boost/date_time/c_local_time_adjustor.hpp>
-#include <boost/algorithm/string/find.hpp>
 #include <sstream>
 
 namespace teamspeak{
 namespace agamemnon{
 
 /*static*/
-std::string CQLQuery::escapeString(const std::string& s, bool quote ){
-  
-  if (!quote) return boost::algorithm::replace_all_copy(s,"'","''");
-  
+std::string CQLQuery::escapeString(const std::string& s, bool quote )
+{
   std::stringstream ss;
   if (quote) ss <<"'";
-  ss << boost::algorithm::replace_all_copy(s,"'","''");
+  
+  for(size_t i=0; i < s.size(); ++i)
+  {
+    char c = s[i];
+    if (c < 0)
+    {
+      //get bits
+      unsigned char uc = static_cast<unsigned char>(c);
+      unsigned char m,mc;
+      int j;
+      for (j=5; j > 1; --j)
+      {
+	mc = 254 << j;
+	m = 255 << j;
+	if ((uc & m)==mc) break;
+      }
+      if (j > 0)
+      {
+	int skip = 7-j;
+	for (int k=0; k < skip;++k) ss << s[i+k];
+	i+= (skip-1);
+	continue;
+      }
+    }
+    if (c == '\'') {
+      ss << "\'\'";
+    } else {
+      ss << c;
+    }
+  }
+ 
   if (quote) ss <<"'";
   return ss.str();
+}
+
+/*static*/
+std::string CQLQuery::booleanToString(bool b, bool quote)
+{
+  if (!quote) return b ? "true" : "false";
+  return b ? "'true'" : "'false'";
 }
 
 /*static*/
@@ -78,7 +112,7 @@ std::string CQLQuery::BytesToHexString(const Bytes& bytes, bool quote )
 /*static*/
 std::string CQLQuery::getTimeStamp(TimeStampAccuracy accuracy)
 {
-  boost::posix_time::time_duration td = boost::posix_time::microsec_clock::local_time() - boost::posix_time::from_time_t(0);
+  boost::posix_time::time_duration td = boost::posix_time::microsec_clock::universal_time() - boost::posix_time::from_time_t(0);
   if (accuracy == AC_MILLISECONDS) return boost::lexical_cast<std::string>(td.total_milliseconds());
   return boost::lexical_cast<std::string>(td.total_microseconds());
 }

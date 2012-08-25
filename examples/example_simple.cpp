@@ -1,9 +1,11 @@
 #include "../agamemnon/singleconnectionfactory.h"
 #include "../agamemnon/client.h"
+#include "../agamemnon/agcqlquery.h"
 #include <boost/asio.hpp>
 #include <boost/assign.hpp>
 
 #include <iostream>
+#include <sstream>
 
 using namespace teamspeak::agamemnon;
 using namespace std;
@@ -15,8 +17,32 @@ const std::vector<std::string> CQL_Statements = boost::assign::list_of
  ("CREATE TABLE agtest.test( vascii ascii, vbigint bigint, vblob blob, vboolean boolean, vdouble double, vfloat float, vint int, vtext text, vtimestamp timestamp, vuuid uuid, vvarchar varchar, PRIMARY KEY(vascii));")
  ("INSERT INTO agtest.test(vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar) values ('hello ascii', 10000000000, '0123456789ABCDEF', 'true', 21.345, 12.3, 1000000000, 'text', '2012-08-22T21:53:01', c42b94bd-63b4-4de5-b4f9-1b7b663ea2d7, 'varchar') USING TTL 3600;")
  ("INSERT INTO agtest.test(vascii,vtext) values ('keynr2', '');")
+ ("INSERT INTO agtest.test(vascii, vvarchar, vblob, vboolean, vtimestamp, vuuid) values ('keynr3',?) USING TIMESTAMP !;")
  ("SELECT vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar, writetime(vvarchar), TTL(vvarchar) FROM agtest.test;")
  ("DROP KEYSPACE agtest;");
+ 
+std::string createInsertValues()
+{
+  //vascii, vblob, vboolean, vtimestamp, vuuid
+  std::stringstream ss;
+  ss << CQLQuery::escapeString("this's is some'' text ro\xC3\x9F""e") <<","
+     << CQLQuery::blobToHexString(" abcd ") << ","
+     << CQLQuery::booleanToString(true) <<","
+     << CQLQuery::ptimeToString(boost::posix_time::microsec_clock::universal_time()) <<","
+     << CQLQuery::bytesStringToUUID("0123456789ABCDEF");
+  return ss.str();
+}
+
+size_t utf8CharCount(const string& s)
+{
+  size_t r = 0;
+  for (size_t i=0; i<s.size(); ++i)
+  {
+    unsigned char uc = static_cast<unsigned char>(s[i]);
+    if ((uc & 0xc0) != 0x80) ++r;
+  }
+  return r;
+}
  
 void errorFunction(const Error& error)
 {
@@ -41,10 +67,10 @@ void getDataDone(CQLQueryResult::Ptr cqlresult, Client::Ptr client, size_t cqlId
     for (size_t i=0; i < cqlresult->getColumnCount(); ++i)
     {
       /*calc max col size*/
-      maxSize[i] = std::min<size_t>(36,cqlresult->getColumnName(i).size());
+      maxSize[i] = std::min<size_t>(36, utf8CharCount(cqlresult->getColumnName(i)));
       for (size_t j=0; j <cqlresult->getRowCount(); ++j) 
       {
-	maxSize[i] =std::min<size_t>(std::max<size_t>(maxSize[i], cqlresult->get(j,i).asString().size()), 36);
+	maxSize[i] =std::min<size_t>(std::max<size_t>(maxSize[i], utf8CharCount(cqlresult->get(j,i).asString())), 36);
       }
       
       /*write the header*/
@@ -85,8 +111,18 @@ void getDataDone(CQLQueryResult::Ptr cqlresult, Client::Ptr client, size_t cqlId
   /*Handle next sql statement*/
   cqlIdx++;
   
-  std::cout << "exec: "<<CQL_Statements[cqlIdx]<<std::endl;
-  client->excecuteCQL(CQL_Statements[cqlIdx], errorFunction, boost::bind(getDataDone, _1, client, cqlIdx));
+  std::string cqlStatement = CQL_Statements[cqlIdx];
+  
+  /* do some replacing */
+  size_t pos;
+  pos = cqlStatement.find('?');
+  if (pos != string::npos) cqlStatement.replace(pos, 1, createInsertValues());
+  pos = cqlStatement.find('!');
+  if (pos != string::npos) cqlStatement.replace(pos, 1, CQLQuery::getTimeStamp());
+  
+  /*execute*/
+  std::cout << "exec: "<<cqlStatement<<std::endl;
+  client->excecuteCQL(cqlStatement, errorFunction, boost::bind(getDataDone, _1, client, cqlIdx));
 }
 
 void getClusterNameDone(Client::Ptr client, const std::string& clustername)
@@ -100,7 +136,6 @@ void getClusterNameDone(Client::Ptr client, const std::string& clustername)
 
 int main(int argc, const char* argv[] )
 {
-
       ConnectionCommonSettings connectionCommonSettings;
       
       ConnectionFactory::Ptr connectionFactory(new SingleConnectionFactory(IOService, "127.0.0.1", connectionCommonSettings));

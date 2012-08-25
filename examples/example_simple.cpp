@@ -16,14 +16,14 @@ const std::vector<std::string> CQL_Statements = boost::assign::list_of
  ("CREATE KEYSPACE agtest WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor = 1;")
  ("CREATE TABLE agtest.test( vascii ascii, vbigint bigint, vblob blob, vboolean boolean, vdouble double, vfloat float, vint int, vtext text, vtimestamp timestamp, vuuid uuid, vvarchar varchar, PRIMARY KEY(vascii));")
  ("INSERT INTO agtest.test(vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar) values ('hello ascii', 10000000000, '0123456789ABCDEF', 'true', 21.345, 12.3, 1000000000, 'text', '2012-08-22T21:53:01', c42b94bd-63b4-4de5-b4f9-1b7b663ea2d7, 'varchar') USING TTL 3600;")
- ("INSERT INTO agtest.test(vascii,vtext) values ('keynr2', '');")
+ ("INSERT INTO agtest.test(vascii, vtext) values ('keynr2', '');")
  ("INSERT INTO agtest.test(vascii, vvarchar, vblob, vboolean, vtimestamp, vuuid) values ('keynr3',?) USING TIMESTAMP !;")
  ("SELECT vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar, writetime(vvarchar), TTL(vvarchar) FROM agtest.test;")
  ("DROP KEYSPACE agtest;");
  
 std::string createInsertValues()
 {
-  //vascii, vblob, vboolean, vtimestamp, vuuid
+  //vvarchar, vblob, vboolean, vtimestamp, vuuid
   std::stringstream ss;
   ss << CQLQuery::escapeString("this's is some'' text ro\xC3\x9F""e") <<","
      << CQLQuery::blobToHexString(" abcd ") << ","

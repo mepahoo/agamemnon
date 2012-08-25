@@ -4,6 +4,10 @@
 #include <boost/bind.hpp>
 #include <iostream>
 
+#ifdef HAS_ZLIB_H
+#include <zlib.h>
+#endif
+
 namespace teamspeak{
 namespace agamemnon{
 
@@ -42,13 +46,33 @@ void CassandraConnection::getClusterName(ErrorFunction errorFunc, boost::functio
   m_AgCassandraCobClient->describe_cluster_name(boost::bind(&CassandraConnection::getClusterName_done, shared_from_this(), errorFunc, callback));
 }
 
-void CassandraConnection::executeCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+void CassandraConnection::executeCQL(const std::string& cql, bool doCompress, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
 {
   m_AgCassandraCobClient->resetBuffers();
   m_Timer.reset();
-  m_AgCassandraCobClient->execute_cql_query(boost::bind(&CassandraConnection::executeCQL_done, shared_from_this(), errorFunc, callback),
-					    cql,
-					    ::org::apache::cassandra::Compression::NONE);
+  
+#ifdef HAS_ZLIB_H
+  if (doCompress && cql.size() > 128) 
+  {
+    std::string buffer(cql.size(), 0);
+    
+    uLongf destLen = buffer.size();
+    int compressRes = compress((Bytef *)buffer.data(), &destLen, (const Bytef *)cql.data(), cql.size());
+    if (compressRes == Z_OK)
+    {
+      buffer.resize(destLen);
+      m_AgCassandraCobClient->execute_cql_query(boost::bind(&CassandraConnection::executeCQL_done, shared_from_this(), errorFunc, callback),
+						buffer,
+						::org::apache::cassandra::Compression::GZIP);
+      return;
+    }
+  }
+#endif // HAS_ZLIB_H
+  {
+    m_AgCassandraCobClient->execute_cql_query(boost::bind(&CassandraConnection::executeCQL_done, shared_from_this(), errorFunc, callback),
+					      cql,
+					      ::org::apache::cassandra::Compression::NONE);
+  }
 }
 
 void CassandraConnection::setNeedToCloseWhenDone()

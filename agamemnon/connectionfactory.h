@@ -12,7 +12,7 @@ namespace agamemnon{
 
 struct ConnectionCommonSettings
 {
-  ConnectionCommonSettings() : port(9160), keyspace(), CQLVersion("3.0.0"), retryDelayOnTimeoutms(5000), connectTimeoutms(1000), ioTimeoutms(1000), replyTimeoutms(5000), maxConnectionReuseCount(100), maxRetryCount(3){}
+  ConnectionCommonSettings() : port(9160), keyspace(), CQLVersion("3.0.0"), retryDelayOnTimeoutms(5000), connectTimeoutms(1000), ioTimeoutms(1000), replyTimeoutms(5000), maxConnectionReuseCount(100), maxRetryCount(3), compressCQL(true){}
   uint16_t    port;
   std::string keyspace;
   std::string CQLVersion;
@@ -22,6 +22,7 @@ struct ConnectionCommonSettings
   int         replyTimeoutms;
   int         maxConnectionReuseCount;
   int         maxRetryCount;
+  bool        compressCQL;
 };
 
 class ConnectionFactory
@@ -48,6 +49,7 @@ class ConnectionFactory
     virtual void getConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr)> callback) = 0;
     virtual int  retryDelayOnTimeout() const = 0;
     virtual int  maxRetryCount() const = 0;
+    virtual bool compressCQL() const = 0;
 };
 
 } //namespace teamspeak

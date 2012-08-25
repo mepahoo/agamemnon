@@ -32,6 +32,12 @@ int  SingleConnectionFactory::maxRetryCount() const
   return m_PrivImpl->maxRetryCount();
 }
 
+/*override*/
+bool  SingleConnectionFactory::compressCQL() const
+{
+  return m_PrivImpl->compressCQL();
+}
+
 SingleConnectionFactory::PrivImpl::PrivImpl(boost::asio::io_service& IOService, const std::string& host, const ConnectionCommonSettings& connectionCommonSettings)
 :boost::enable_shared_from_this<PrivImpl>()
 ,m_Resolver(IOService)
@@ -87,6 +93,12 @@ int  SingleConnectionFactory::PrivImpl::retryDelayOnTimeout() const
 int  SingleConnectionFactory::PrivImpl::maxRetryCount() const
 {
   return m_ConnectionCommonSettings.maxRetryCount;
+}
+
+/*override*/
+bool  SingleConnectionFactory::PrivImpl::compressCQL() const
+{
+  return m_ConnectionCommonSettings.compressCQL;
 }
 
 void SingleConnectionFactory::PrivImpl::startNewConnection()

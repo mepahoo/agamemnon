@@ -20,6 +20,7 @@ class SingleConnectionFactory : public ConnectionFactory
     /*override*/ void getConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr)> callback);
     /*override*/ int  retryDelayOnTimeout() const;
     /*override*/ int  maxRetryCount() const;
+    /*override*/ bool compressCQL() const;
   private:
     class PrivImpl : public boost::enable_shared_from_this<PrivImpl>{
       public:
@@ -28,6 +29,7 @@ class SingleConnectionFactory : public ConnectionFactory
         void getConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr)> callback);
         int  retryDelayOnTimeout() const;
         int  maxRetryCount() const;
+	bool compressCQL() const;
       private:
 	void startNewConnection();
         void resolveHandler(const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator);

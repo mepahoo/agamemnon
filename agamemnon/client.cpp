@@ -39,7 +39,7 @@ void Client::excecuteCQL(const std::string& cql, ErrorFunction errorFunc, boost:
     boost::bind(&Client::generic_RetryError, shared_from_this(), _1, errorFunc, retryFunc);
       
   boost::function<void(CassandraConnection::Ptr connection)> executeCqlFunc =
-    boost::bind( &CassandraConnection::executeCQL, _1, cql, retryErrorFunc, callback);
+    boost::bind( &CassandraConnection::executeCQL, _1, cql, m_ConnectionFactory->compressCQL(), retryErrorFunc, callback);
     
   ensureConnection(retryErrorFunc, executeCqlFunc);
 }

@@ -34,7 +34,7 @@ class CassandraConnection : public boost::enable_shared_from_this<CassandraConne
     const bool needToCloseWhenDone() const { return m_NeedToCloseWhenDone;}
     
     void getClusterName(ErrorFunction errorFunc, boost::function<void(const std::string&)> callback);
-    void executeCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback);
+    void executeCQL(const std::string& cql, bool compress, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback);
     
     void setNeedToCloseWhenDone();
   private:

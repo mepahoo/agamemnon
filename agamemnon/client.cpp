@@ -30,6 +30,29 @@ void Client::getClusterName(ErrorFunction errorFunc, boost::function<void(const 
   ensureConnection(retryErrorFunc, requestClusterNameFunc);
 }
 
+void Client::prepareQuery(const std::string& cql, ErrorFunction errorFunc, boost::function<void(PreparedQuery::Ptr)> callback)
+{
+  GlobalPreparedQueryCache::PreparedQueryInfo::Ptr queryInfo = GlobalPreparedQueryCache::getInstance()->getPreparedQueryInfo(cql);
+  if (queryInfo.get() != 0){
+    callback(PreparedQuery::Ptr(new PreparedQuery(queryInfo)));
+  }
+  
+  //else, we must prepare to get info
+  boost::function<void()> retryFunc =
+    boost::bind(&Client::prepareQuery, shared_from_this(), cql, errorFunc, callback);
+
+  ErrorFunction retryErrorFunc =
+    boost::bind(&Client::generic_RetryError, shared_from_this(), _1, errorFunc, retryFunc);
+  
+  boost::function<void(GlobalPreparedQueryCache::PreparedQueryInfo::Ptr)> transformCallback =
+    boost::bind(&Client::prepareQuery_done, shared_from_this(), _1, callback);
+      
+  boost::function<void(CassandraConnection::Ptr connection)> prepareQueryFunc =
+    boost::bind( &CassandraConnection::prepareQuery, _1, cql, m_ConnectionFactory->compressCQL(), retryErrorFunc, transformCallback );
+    
+  ensureConnection(retryErrorFunc, prepareQueryFunc);
+}
+
 void Client::excecuteCQL(const std::string& cql, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
 {
  boost::function<void()> retryFunc =
@@ -42,6 +65,20 @@ void Client::excecuteCQL(const std::string& cql, ErrorFunction errorFunc, boost:
     boost::bind( &CassandraConnection::executeCQL, _1, cql, m_ConnectionFactory->compressCQL(), retryErrorFunc, callback);
     
   ensureConnection(retryErrorFunc, executeCqlFunc);
+}
+
+void Client::executePreparedQuery(const PreparedQuery::Ptr & fieldData, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+{
+ boost::function<void()> retryFunc =
+    boost::bind(&Client::executePreparedQuery, shared_from_this(), fieldData, errorFunc, callback);
+
+  ErrorFunction retryErrorFunc =
+    boost::bind(&Client::generic_RetryError, shared_from_this(), _1, errorFunc, retryFunc);
+      
+  boost::function<void(CassandraConnection::Ptr connection)> executePreparedQueryFunc =
+    boost::bind( &CassandraConnection::executePreparedQuery, _1, fieldData, m_ConnectionFactory->compressCQL(), retryErrorFunc, callback);
+    
+  ensureConnection(retryErrorFunc, executePreparedQueryFunc);
 }
 
 void Client::ensureConnection(ErrorFunction errorFunc, boost::function<void(CassandraConnection::Ptr connection)> continuation)
@@ -94,6 +131,11 @@ void Client::generic_ReconnectWaitDone(const boost::system::error_code& error, E
   }
   
   retryFunc();
+}
+
+void Client::prepareQuery_done(GlobalPreparedQueryCache::PreparedQueryInfo::Ptr& preparedQueryInfo, boost::function<void(PreparedQuery::Ptr)> callback)
+{
+ callback(PreparedQuery::Ptr(new PreparedQuery(preparedQueryInfo)));  
 }
 
 } //namespace teamspeak

@@ -88,7 +88,6 @@ bool AgCassandraCobClient::recv_describe_cluster_name(ExErrorFunction errorFunc,
 
 bool AgCassandraCobClient::recv_execute_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlResult& _return)
 {
-
   try{
     if (!common_recv(errorFunc, "execute_cql_query")) return false;
     
@@ -146,6 +145,71 @@ bool AgCassandraCobClient::recv_set_cql_version(ExErrorFunction errorFunc)
   }
 }
 
+bool AgCassandraCobClient::recv_prepare_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlPreparedResult& _return)
+{
+  try{
+    if (!common_recv(errorFunc, "prepare_cql_query")) return false;
+
+    ::org::apache::cassandra::Cassandra_prepare_cql_query_presult result;
+    result.success = &_return;
+    result.read(iprot_);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+
+    if (result.__isset.success) {
+      // _return pointer has now been filled
+      return true;
+    }
+    if (result.__isset.ire) {
+      errorFunc(Error(Error::InvalidRequestException, result.ire.why));
+      return false;
+    }
+    errorFunc(Error(Error::ApplicationException, "prepare_cql_query failed: unknown result"));
+    return false;
+  } catch (const std::exception& e){
+    errorFunc(Error::TranslateException(&e));
+    return false;
+  }
+}
+
+bool AgCassandraCobClient::recv_execute_prepared_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlResult& _return)
+{
+  try{
+    if (!common_recv(errorFunc, "execute_prepared_cql_query")) return false;
+    
+    ::org::apache::cassandra::Cassandra_execute_prepared_cql_query_presult result;
+    result.success = &_return;
+    result.read(iprot_);
+    iprot_->readMessageEnd();
+    iprot_->getTransport()->readEnd();
+
+    if (result.__isset.success) {
+      // _return pointer has now been filled
+      return true;
+    }
+    if (result.__isset.ire) {
+      errorFunc(Error(Error::InvalidRequestException, result.ire.why));
+      return false;
+    }
+    if (result.__isset.ue) {
+      errorFunc(Error(Error::UnavailableException, result.ue.what()));
+      return false;
+    }
+    if (result.__isset.te) {
+      errorFunc(Error(Error::TimedOutException, result.te.what()));
+      return false;
+    }
+    if (result.__isset.sde) {
+      errorFunc(Error(Error::SchemaDisagreementException, result.sde.what()));
+      return false;
+    }
+    errorFunc(Error(Error::ApplicationException, "execute_cql_query failed: unknown result"));
+    return false;
+   } catch (const std::exception& e){
+    errorFunc(Error::TranslateException(&e));
+    return false;
+  }
+}
 
 } //namespace teamspeak
 } //namespace agamemnon

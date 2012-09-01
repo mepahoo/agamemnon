@@ -2,7 +2,8 @@ import os, sys
 
 Import('env')
 
-sourceFiles = Split('agamemnon_types.cpp agcassandracobclient.cpp client.cpp cassandraconnection.cpp cassandraconnectionchannel.cpp singleconnectionfactory.cpp agtimer.cpp agcqlqueryresult.cpp agcqlquery.cpp')
+sourceFiles = Split('agamemnon_types.cpp ag_private.cpp agcassandracobclient.cpp client.cpp cassandraconnection.cpp cassandraconnectionchannel.cpp singleconnectionfactory.cpp '\
+                     'agtimer.cpp agcqlqueryresult.cpp agcqlquery.cpp agglobalpreparedquerycache.cpp agpreparedquery.cpp')
 
 agamemnon = env.StaticLibrary('agamemnon', sourceFiles)
 

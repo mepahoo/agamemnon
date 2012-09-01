@@ -24,6 +24,8 @@ namespace agamemnon{
       bool recv_describe_cluster_name(ExErrorFunction errorFunc, std::string& _return);
       bool recv_execute_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlResult& _return);
       bool recv_set_cql_version(ExErrorFunction errorFunc);
+      bool recv_prepare_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlPreparedResult& _return);
+      bool recv_execute_prepared_cql_query(ExErrorFunction errorFunc, ::org::apache::cassandra::CqlResult& _return);
 
 
   };

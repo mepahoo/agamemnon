@@ -7,6 +7,8 @@ namespace teamspeak{
 namespace agamemnon{
   
   enum TimeAdjust{ TA_LOCALTIME, TA_UTCTIME};
+  
+  enum ColumnDataType {CDT_UNKNOWN, CDT_ASCII, CDT_INT64, CDT_BYTES, CDT_BOOLEAN, CDT_COUNTER, CDT_DECIMAL, CDT_DOUBLE, CDT_FLOAT, CDT_INT32, CDT_UTF8, CDT_DATE, CDT_UUID, CDT_INTEGER};
       
   struct Error
   {

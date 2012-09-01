@@ -45,8 +45,7 @@ class CQLQueryResult
 {
   public:
     typedef boost::shared_ptr<CQLQueryResult> Ptr;
-    
-    enum ColumnDataType {UNKNOWN, ASCII, INT64, BYTES, BOOLEAN, COUNTER, DECIMAL, DOUBLE, FLOAT, INT32, UTF8, DATE, UUID, INTEGER};
+   
     
     static const size_t npos = -1;
     class CQLColumnValue
@@ -55,7 +54,9 @@ class CQLQueryResult
 	CQLColumnValue(const ::org::apache::cassandra::Column& column, ColumnDataType cdt);
 	bool                      isNull() const;
 	std::string               asString() const;
-	const std::string&        asBytes() const;
+	const std::string&        asRawBytes() const;
+	Bytes                     asBytes() const;
+	UUID                      asUUID() const;
 	int64_t                   asInt64() const;
 	bool                      asBool() const;
 	double                    asDouble() const;
@@ -99,8 +100,6 @@ class CQLQueryResult
     bool parse(ErrorFunction errorFunc);
     ::org::apache::cassandra::CqlResult* m_Result;
     std::vector<ColumnDataType>          m_ColDataTypes;
-    
-    static std::map<std::string, ColumnDataType> s_DataStringToType;
     
     friend class CassandraConnection;
 };

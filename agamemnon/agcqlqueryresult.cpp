@@ -1,8 +1,8 @@
 #include "agcqlqueryresult.h"
 
-#include <boost/assign.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time/c_local_time_adjustor.hpp>
+#include "ag_private.h"
 
 #include "../thriftcassandra/cassandra_types.h"
 
@@ -30,26 +30,13 @@
 #include <endian.h>
 #endif
 
+#define AG_VALIDATE_THROW(x) \
+  if (!x) throw ParseException();
+
 namespace teamspeak{
 namespace agamemnon{
 
-std::map<std::string, CQLQueryResult::ColumnDataType> CQLQueryResult::s_DataStringToType = 
-    boost::assign::map_list_of 
-     ("AsciiType", CQLQueryResult::ASCII)
-     ("LongType", CQLQueryResult::INT64)
-     ("BytesType", CQLQueryResult::BYTES)
-     ("BooleanType", CQLQueryResult::BOOLEAN)
-     ("CounterColumnType", CQLQueryResult::COUNTER)
-     ("DecimalType", CQLQueryResult::DECIMAL)
-     ("DoubleType", CQLQueryResult::DOUBLE)
-     ("FloatType", CQLQueryResult::FLOAT)
-     ("Int32Type", CQLQueryResult::INT32)
-     ("UTF8Type", CQLQueryResult::UTF8)
-     ("DateType", CQLQueryResult::DATE)
-     ("UUIDType", CQLQueryResult::UUID)
-     ("IntegerType", CQLQueryResult::INTEGER);
-     
-CQLQueryResult::CQLColumnValue::CQLColumnValue(const ::org::apache::cassandra::Column& column, CQLQueryResult::ColumnDataType cdt)
+CQLQueryResult::CQLColumnValue::CQLColumnValue(const ::org::apache::cassandra::Column& column, ColumnDataType cdt)
 : m_Column(column)
 , m_Cdt(cdt)
 {
@@ -66,47 +53,61 @@ std::string CQLQueryResult::CQLColumnValue::asString() const
   if (isNull()) return "null";
   switch (m_Cdt) 
   {
-    case INT64:
+    case CDT_INT64:
       return boost::lexical_cast<std::string>(intAsInt64());
-    case BYTES:
+    case CDT_BYTES:
       return Bytes::bytesStringToHex(m_Column.value);
-    case BOOLEAN:
+    case CDT_BOOLEAN:
       return intAsBool()? "true" : "false";
-    case COUNTER:
+    case CDT_COUNTER:
       return boost::lexical_cast<std::string>(intAsInt64());
-    case DOUBLE:
+    case CDT_DOUBLE:
       return boost::lexical_cast<std::string>(intAsDouble());
-    case FLOAT:
+    case CDT_FLOAT:
       return boost::lexical_cast<std::string>(intAsFloat());
-    case INT32:
+    case CDT_INT32:
       return boost::lexical_cast<std::string>(intAsInt());
-    case DATE:
+    case CDT_DATE:
       return boost::posix_time::to_iso_extended_string(intAsDateTime(TA_LOCALTIME));
-    case UUID:
+    case CDT_UUID:
       return ::teamspeak::agamemnon::UUID::bytesToString(m_Column.value);
     default:
       return m_Column.value;
   }
 }
 
-const std::string& CQLQueryResult::CQLColumnValue::asBytes() const
+const std::string& CQLQueryResult::CQLColumnValue::asRawBytes() const
 {
-  if (m_Cdt != CQLQueryResult::BYTES) throw ConversionException();
+  if (m_Cdt != CDT_BYTES) throw ConversionException();
   return m_Column.value;
+}
+
+Bytes CQLQueryResult::CQLColumnValue::asBytes() const
+{
+  if (m_Cdt != CDT_BYTES) throw ConversionException();
+  return Bytes(m_Column.value);
+}
+
+UUID CQLQueryResult::CQLColumnValue::asUUID() const
+{
+  if (m_Cdt != CDT_UUID) throw ConversionException();
+  UUID uuid;
+  uuid.setAsBytes(m_Column.value.data());
+  return uuid;
 }
 
 int64_t  CQLQueryResult::CQLColumnValue::asInt64() const
 {
   switch (m_Cdt) 
   {
-    case INT64: 
-    case COUNTER:
+    case CDT_INT64: 
+    case CDT_COUNTER:
       return intAsInt64();
-    case DOUBLE:
+    case CDT_DOUBLE:
       return intAsDouble();
-    case FLOAT:
+    case CDT_FLOAT:
       return intAsFloat();
-    case INT32:
+    case CDT_INT32:
       return intAsInt();
     default:
       throw ConversionException();
@@ -115,7 +116,7 @@ int64_t  CQLQueryResult::CQLColumnValue::asInt64() const
 
 bool CQLQueryResult::CQLColumnValue::asBool() const
 {
-  if (m_Cdt!=BOOLEAN) throw ConversionException();
+  if (m_Cdt!=CDT_BOOLEAN) throw ConversionException();
   return intAsBool();
 }
 
@@ -123,14 +124,14 @@ double CQLQueryResult::CQLColumnValue::asDouble() const
 {
    switch (m_Cdt) 
   {
-    case INT64: 
-    case COUNTER:
+    case CDT_INT64: 
+    case CDT_COUNTER:
       return intAsInt64();
-    case DOUBLE:
+    case CDT_DOUBLE:
       return intAsDouble();
-    case FLOAT:
+    case CDT_FLOAT:
       return intAsFloat();
-    case INT32:
+    case CDT_INT32:
       return intAsInt();
     default:
       throw ConversionException();
@@ -141,14 +142,14 @@ float CQLQueryResult::CQLColumnValue::asFloat() const
 {
    switch (m_Cdt) 
   {
-    case INT64: 
-    case COUNTER:
+    case CDT_INT64: 
+    case CDT_COUNTER:
       return intAsInt64();
-    case DOUBLE:
+    case CDT_DOUBLE:
       return intAsDouble();
-    case FLOAT:
+    case CDT_FLOAT:
       return intAsFloat();
-    case INT32:
+    case CDT_INT32:
       return intAsInt();
     default:
       throw ConversionException();
@@ -159,14 +160,14 @@ int CQLQueryResult::CQLColumnValue::asInt() const
 {
    switch (m_Cdt) 
   {
-    case INT64: 
-    case COUNTER:
+    case CDT_INT64: 
+    case CDT_COUNTER:
       return intAsInt64();
-    case DOUBLE:
+    case CDT_DOUBLE:
       return intAsDouble();
-    case FLOAT:
+    case CDT_FLOAT:
       return intAsFloat();
-    case INT32:
+    case CDT_INT32:
       return intAsInt();
     default:
       throw ConversionException();
@@ -175,7 +176,7 @@ int CQLQueryResult::CQLColumnValue::asInt() const
 
 boost::posix_time::ptime CQLQueryResult::CQLColumnValue::asDateTime(TimeAdjust ta) const
 {
-  if (m_Cdt != DATE) throw ConversionException();
+  if (m_Cdt != CDT_DATE) throw ConversionException();
   return intAsDateTime(ta);
 }
 
@@ -203,7 +204,7 @@ bool  CQLQueryResult::CQLColumnValue::hasTTL() const
 
 int64_t CQLQueryResult::CQLColumnValue::intAsInt64() const
 {
-  BOOST_ASSERT(m_Column.value.size()==8);
+  AG_VALIDATE_THROW(m_Column.value.size()==8);
   const uint64_t* data = reinterpret_cast<const uint64_t*>(m_Column.value.data());
   return static_cast<int64_t>(be64toh(*data));
 }
@@ -220,7 +221,7 @@ double CQLQueryResult::CQLColumnValue::intAsDouble() const
     int64_t i;
     double  d;
   } v;
-  BOOST_ASSERT(m_Column.value.size()==8);
+  AG_VALIDATE_THROW(m_Column.value.size()==8);
   v.i = static_cast<int64_t>(be64toh(*reinterpret_cast<const uint64_t*>(m_Column.value.data())));
   return v.d;
 }
@@ -231,14 +232,14 @@ float CQLQueryResult::CQLColumnValue::intAsFloat() const
     int32_t i;
     float   f;
   } v;
-  BOOST_ASSERT(m_Column.value.size()==4);
+  AG_VALIDATE_THROW(m_Column.value.size()==4);
   v.i = static_cast<int32_t>(be32toh(*reinterpret_cast<const uint32_t*>(m_Column.value.data())));
   return v.f;
 }
 
 int CQLQueryResult::CQLColumnValue::intAsInt() const
 {
-  BOOST_ASSERT(m_Column.value.size()==4);
+  AG_VALIDATE_THROW(m_Column.value.size()==4);
   return static_cast<int32_t>(be32toh(*reinterpret_cast<const uint32_t*>(m_Column.value.data())));
   
 }
@@ -299,7 +300,7 @@ size_t CQLQueryResult::getRowCount() const
   return m_Result->rows.size();
 }
 
-CQLQueryResult::ColumnDataType CQLQueryResult::getColumnType(size_t colIdx) const
+ColumnDataType CQLQueryResult::getColumnType(size_t colIdx) const
 {
   if (colIdx >= m_ColDataTypes.size()) throw IndexOutOfRangeException();
   
@@ -342,12 +343,7 @@ bool CQLQueryResult::parse(ErrorFunction errorFunc)
   {
     const std::string& colName = m_Result->rows[0].columns[i].name;
     const std::string& colType = m_Result->schema.value_types[colName];
-    std::map<std::string, CQLQueryResult::ColumnDataType> ::const_iterator it = s_DataStringToType.find(colType);
-    if (it == s_DataStringToType.end()){
-      m_ColDataTypes.push_back(UNKNOWN);
-    } else {
-      m_ColDataTypes.push_back(it->second);
-    }
+    m_ColDataTypes.push_back(columnTypeStringToEnum(colType));
   }
   
   return true;

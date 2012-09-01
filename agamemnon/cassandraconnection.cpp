@@ -16,6 +16,7 @@ CassandraConnection::CassandraConnection(AgCassandraCobClient* con)
 , m_AgCassandraCobClient(con)
 , m_NeedToCloseWhenDone(false)
 , m_Timer()
+, m_PreparedQueryMap()
 {
 }
 
@@ -75,6 +76,54 @@ void CassandraConnection::executeCQL(const std::string& cql, bool doCompress, Er
   }
 }
 
+void CassandraConnection::prepareQuery(const std::string& cql, bool doCompress, ErrorFunction errorFunc, boost::function<void(GlobalPreparedQueryCache::PreparedQueryInfo::Ptr)> callback)
+{
+  m_AgCassandraCobClient->resetBuffers();
+  m_Timer.reset();
+
+#ifdef HAS_ZLIB_H
+  if (doCompress && cql.size() > 128) 
+  {
+    std::string buffer(cql.size(), 0);
+    
+    uLongf destLen = buffer.size();
+    int compressRes = compress((Bytef *)buffer.data(), &destLen, (const Bytef *)cql.data(), cql.size());
+    if (compressRes == Z_OK)
+    {
+      buffer.resize(destLen);
+      m_AgCassandraCobClient->prepare_cql_query(boost::bind(&CassandraConnection::prepareQuery_done, shared_from_this(), errorFunc, cql, callback),
+						buffer,
+						::org::apache::cassandra::Compression::GZIP);
+      return;
+    }
+  }
+#endif // HAS_ZLIB_H
+  {
+    m_AgCassandraCobClient->prepare_cql_query(boost::bind(&CassandraConnection::prepareQuery_done, shared_from_this(), errorFunc, cql, callback),
+					      cql,
+					      ::org::apache::cassandra::Compression::NONE);
+  }
+}
+
+void CassandraConnection::executePreparedQuery(const PreparedQuery::Ptr & fieldData, bool doCompress, ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+{
+  PreparedQueryMap::const_iterator it = m_PreparedQueryMap.find(fieldData->m_FieldDesc);
+  
+  if (it == m_PreparedQueryMap.end()){
+    //not prepared on this connection
+    boost::function<void(GlobalPreparedQueryCache::PreparedQueryInfo::Ptr)> callback2 = 
+      boost::bind(&CassandraConnection::executePreparedQuery, shared_from_this(), fieldData, doCompress, errorFunc, callback);
+      
+    prepareQuery(fieldData->m_FieldDesc->query, doCompress, errorFunc, callback2);  
+  } else {
+    m_AgCassandraCobClient->resetBuffers();
+    m_Timer.reset();
+  
+    m_AgCassandraCobClient->execute_prepared_cql_query(boost::bind(&CassandraConnection::executePreparedQuery_done, shared_from_this(), errorFunc, callback), it->second, fieldData->m_Data);
+  }
+}
+
+
 void CassandraConnection::setNeedToCloseWhenDone()
 {
   m_NeedToCloseWhenDone = true;
@@ -113,6 +162,27 @@ void CassandraConnection::executeCQL_done(ErrorFunction errorFunc, boost::functi
   if (!result->parse(errorFunc)) return;
   callback(result);
 }
+
+void CassandraConnection::prepareQuery_done(ErrorFunction errorFunc, const std::string& cql, boost::function<void(GlobalPreparedQueryCache::PreparedQueryInfo::Ptr)> callback)
+{
+  org::apache::cassandra::CqlPreparedResult cqlPreparedResult;
+  if (!m_AgCassandraCobClient->checkTransportErrors(errorFunc)) return;
+  if (!m_AgCassandraCobClient->recv_prepare_cql_query(errorFunc, cqlPreparedResult)) return;
+  
+  GlobalPreparedQueryCache::PreparedQueryInfo::Ptr res = GlobalPreparedQueryCache::getInstance()->storePreparedQuery(cql, &cqlPreparedResult);
+  m_PreparedQueryMap[res] = cqlPreparedResult.itemId;
+  callback(res);
+}
+
+void CassandraConnection::executePreparedQuery_done(ErrorFunction errorFunc, boost::function<void(CQLQueryResult::Ptr)> callback)
+{
+  CQLQueryResult::Ptr result(new CQLQueryResult());
+  if (!m_AgCassandraCobClient->checkTransportErrors(errorFunc)) return;
+  if (!m_AgCassandraCobClient->recv_execute_prepared_cql_query(errorFunc, *result->m_Result)) return;
+  if (!result->parse(errorFunc)) return;
+  callback(result);
+}
+
 
 } //namespace teamspeak
 } //namespace agamemnon

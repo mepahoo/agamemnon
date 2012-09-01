@@ -3,7 +3,7 @@ import os, sys
 Import('env')
 Import('deplibs')
 
-deplibs += Split('thrift boost_system boost_thread pthread')
+deplibs += Split('thrift boost_system boost_date_time boost_thread pthread')
 sourceFiles = Split('example_simple.cpp')
 
 example_simple = env.Program('example_simple', sourceFiles, LIBS=deplibs)

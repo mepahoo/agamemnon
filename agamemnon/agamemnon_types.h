@@ -44,9 +44,9 @@ namespace agamemnon{
   class UUID
   {
     public:
-      UUID();
-      UUID(const std::string& UUIDString);
-      UUID(Bytes& bytes);
+      explicit UUID();
+      explicit UUID(const std::string& UUIDString);
+      explicit UUID(Bytes& bytes);
       
       void setAsBytes(const char* UUIDbytes); //16 bytes implied
       
@@ -65,8 +65,8 @@ namespace agamemnon{
   class Bytes
   {
     public:
-      Bytes(const std::string& bytes);
-      Bytes(const char* bytes, size_t len);
+      explicit Bytes(const std::string& bytes);
+      explicit Bytes(const char* bytes, size_t len);
       
       size_t size() const;
       const char* data() const;

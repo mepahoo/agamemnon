@@ -45,6 +45,8 @@ class PreparedQuery
     void clear(size_t idx);
     void clear(const std::string& fieldName);
     
+    void set(size_t idx, const char* value); //also works for UUID and Bytes (or any other data type) in raw data form
+    void set(const std::string& fieldName, const char* value);
     void set(size_t idx, const std::string& value); //also works for UUID and Bytes (or any other data type) in raw data form
     void set(const std::string& fieldName, const std::string& value);
     
@@ -56,6 +58,8 @@ class PreparedQuery
 
     void set(size_t idx, int64_t value);
     void set(const std::string& fieldName, int64_t value);
+    inline void setAsInt64(size_t idx, int64_t value) { set(idx, value); }
+    inline void setAsInt64(const std::string& fieldName, int64_t value) {set(fieldName, value);}
     
     void set(size_t idx, bool value);
     void set(const std::string& fieldName, bool value);
@@ -65,6 +69,8 @@ class PreparedQuery
     
     void set(size_t idx, float value);
     void set(const std::string& fieldName, float value);
+    inline void setAsFloat(size_t idx, float value) { set(idx, value); }
+    inline void setAsFloat(const std::string& fieldName, float value) {set(fieldName, value);}
     
     void set(size_t idx, int32_t value);
     void set(const std::string& fieldName, int32_t value);

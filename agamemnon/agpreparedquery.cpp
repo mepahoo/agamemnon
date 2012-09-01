@@ -81,14 +81,23 @@ void PreparedQuery::clear(const std::string& fieldName)
   m_Data.at(getRequiredFieldIndex(fieldName)).clear();
 }
 
+void PreparedQuery::set(size_t idx, const char* value)
+{
+  m_Data.at(idx).assign(value);
+}
+
+void PreparedQuery::set(const std::string& fieldName, const char* value)
+{
+  m_Data.at(getRequiredFieldIndex(fieldName)).assign(value);
+}
 void PreparedQuery::set(size_t idx, const std::string& value)
 {
-  m_Data.at(idx) = value;
+  m_Data.at(idx).assign(value);
 }
 
 void PreparedQuery::set(const std::string& fieldName, const std::string& value)
 {
-  m_Data[getRequiredFieldIndex(fieldName)] = value;
+  m_Data.at(getRequiredFieldIndex(fieldName)).assign(value);
 }
 
 void PreparedQuery::set(size_t idx, const Bytes& value)
@@ -103,12 +112,12 @@ void PreparedQuery::set(const std::string& fieldName, const Bytes& value)
 
 void PreparedQuery::set(size_t idx, const UUID& value)
 {
-  m_Data.at(idx) = value.asBytesString();
+  m_Data.at(idx).assign(value.asBytesString());
 }
 
 void PreparedQuery::set(const std::string& fieldName, const UUID& value)
 {
-  m_Data[getRequiredFieldIndex(fieldName)] = value.asBytesString();
+  m_Data.at(getRequiredFieldIndex(fieldName)).assign(value.asBytesString());
 }
 
 void PreparedQuery::set(size_t idx, int64_t value)

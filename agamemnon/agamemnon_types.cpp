@@ -74,7 +74,7 @@ UUID::UUID()
 }
 
 UUID::UUID(const std::string& UUIDString)
-:m_Data(UUIDString)
+:m_Data(UUID::UUIDToBytesString(UUIDString))
 {
   if(m_Data.size()!=16) m_Data.clear();
 }

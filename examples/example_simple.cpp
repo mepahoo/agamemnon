@@ -3,12 +3,15 @@
 #include "../agamemnon/agcqlquery.h"
 #include <boost/asio.hpp>
 #include <boost/assign.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <iostream>
 #include <sstream>
 
 using namespace teamspeak::agamemnon;
 using namespace std;
+
+void statementPrepared(Client::Ptr client, size_t cqlIdx, PreparedQuery::Ptr query); //forward decleration
 
 boost::asio::io_service IOService;
 
@@ -17,7 +20,8 @@ const std::vector<std::string> CQL_Statements = boost::assign::list_of
  ("CREATE TABLE agtest.test( vascii ascii, vbigint bigint, vblob blob, vboolean boolean, vdouble double, vfloat float, vint int, vtext text, vtimestamp timestamp, vuuid uuid, vvarchar varchar, PRIMARY KEY(vascii));")
  ("INSERT INTO agtest.test(vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar) values ('hello ascii', 10000000000, '0123456789ABCDEF', 'true', 21.345, 12.3, 1000000000, 'text', '2012-08-22T21:53:01', c42b94bd-63b4-4de5-b4f9-1b7b663ea2d7, 'varchar') USING TTL 3600;")
  ("INSERT INTO agtest.test(vascii, vtext) values ('keynr2', '');")
- ("INSERT INTO agtest.test(vascii, vvarchar, vblob, vboolean, vtimestamp, vuuid) values ('keynr3',?) USING TIMESTAMP !;")
+ ("INSERT INTO agtest.test(vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ;")
+ ("INSERT INTO agtest.test(vascii, vvarchar, vblob, vboolean, vtimestamp, vuuid) values ('keynr3',!) USING TIMESTAMP !;")
  ("SELECT vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar, writetime(vvarchar), TTL(vvarchar) FROM agtest.test;")
  ("DROP KEYSPACE agtest;");
  
@@ -112,17 +116,48 @@ void getDataDone(CQLQueryResult::Ptr cqlresult, Client::Ptr client, size_t cqlId
   cqlIdx++;
   
   std::string cqlStatement = CQL_Statements[cqlIdx];
-  
-  /* do some replacing */
+
   size_t pos;
+  /*check for prepared statement*/
   pos = cqlStatement.find('?');
-  if (pos != string::npos) cqlStatement.replace(pos, 1, createInsertValues());
+  if (pos != string::npos) {
+    std::cout << "prepare: "<<cqlStatement<<std::endl;
+    client->prepareQuery(cqlStatement, errorFunction, boost::bind(statementPrepared, client, cqlIdx, _1));
+    return;
+  }
+  
+
+  /* do some replacing */
   pos = cqlStatement.find('!');
-  if (pos != string::npos) cqlStatement.replace(pos, 1, CQLQuery::getTimeStamp());
+  if (pos != string::npos) {
+    cqlStatement.replace(pos, 1, createInsertValues());
+    pos = cqlStatement.find('!');
+    if (pos != string::npos) cqlStatement.replace(pos, 1, CQLQuery::getTimeStamp());
+  }
   
   /*execute*/
   std::cout << "exec: "<<cqlStatement<<std::endl;
   client->excecuteCQL(cqlStatement, errorFunction, boost::bind(getDataDone, _1, client, cqlIdx));
+}
+
+void statementPrepared(Client::Ptr client, size_t cqlIdx, PreparedQuery::Ptr query)
+{
+  std::cout <<"Execute prepared statement"<<std::endl;
+ //(vascii, vbigint, vblob, vboolean, vdouble, vfloat, vint, vtext, vtimestamp, vuuid, vvarchar) values 
+ //('hello ascii', 10000000000, '0123456789ABCDEF', 'true', 21.345, 12.3, 1000000000, 'text', '2012-08-22T21:53:01', c42b94bd-63b4-4de5-b4f9-1b7b663ea2d7, 'varchar') USING TTL 3600;")
+  query->set("vascii", "hello asc1");
+  query->set("vbigint", static_cast<int64_t>(10000000001ll));
+  query->set("vblob", Bytes("\x01\x23\x45\x67\x89\xAB\xCD\xE0")); //don't realy need to convert to bytes here.. just for demo purposes
+  query->set("vboolean", false);
+  query->set("vdouble", 21.346);
+  query->set("vfloat",  12.4f);
+  query->set("vint", 1000000001);
+  query->set("vtext", "tex1");
+  query->set("vtimestamp", boost::posix_time::time_from_string("2012-08-22 21:53:02"));
+  query->set("vuuid", UUID("c42b94bd-63b4-4de5-b4f9-1b7b663ea2d8"));
+  query->set("vvarchar", "varcha1");
+  
+  client->executePreparedQuery(query, errorFunction, boost::bind(getDataDone, _1, client, cqlIdx));
 }
 
 void getClusterNameDone(Client::Ptr client, const std::string& clustername)

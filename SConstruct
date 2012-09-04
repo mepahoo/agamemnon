@@ -10,43 +10,42 @@ debug = ARGUMENTS.get('debug', 1) #if we get debug=0 on the cmdline we make a no
 #create an environment
 env = Environment()
 
-if not env.GetOption('clean'):
-    conf = Configure(env)
+conf = Configure(env)
 
-    ##check for compiler and do sanity checks
-    if not conf.CheckCXX():
-	print('!! Your compiler and/or environment is not correctly configured.')
-	Exit(1)
-    ##check for environment variables
-    if 'CXX' in os.environ:
-	conf.env.Replace(CXX = os.environ['CXX'])
-	print(">> Using compiler " + os.environ['CXX'])
-    if 'CXXFLAGS' in os.environ:
-	conf.env.Append(CCFLAGS = os.environ['CXXFLAGS'])
-	print(">> Appending custom build flags : " + os.environ['CXXFLAGS'])
-    if 'LDFLAGS' in os.environ:
-	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
-	print(">> Appending custom link flags : " + os.environ['LDFLAGS'])
+##check for compiler and do sanity checks
+if not conf.CheckCXX():
+    print('!! Your compiler and/or environment is not correctly configured.')
+    Exit(1)
+##check for environment variables
+if 'CXX' in os.environ:
+    conf.env.Replace(CXX = os.environ['CXX'])
+    print(">> Using compiler " + os.environ['CXX'])
+if 'CXXFLAGS' in os.environ:
+    conf.env.Append(CCFLAGS = os.environ['CXXFLAGS'])
+    print(">> Appending custom build flags : " + os.environ['CXXFLAGS'])
+if 'LDFLAGS' in os.environ:
+    conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
+    print(">> Appending custom link flags : " + os.environ['LDFLAGS'])
 
-    ##Check for boost##
-    if not conf.CheckLibWithHeader('boost_system', 'boost/bind.hpp', 'c++') :
-	print 'Boost library must be installed!'
-	Exit(1)
+##Check for boost##
+if not conf.CheckLibWithHeader('boost_system', 'boost/bind.hpp', 'c++') :
+    print 'Boost library must be installed!'
+    Exit(1)
 
-    ##check thrift##
-    if not conf.CheckLibWithHeader('thrift', 'thrift/Thrift.h', 'c++') :
-	print 'Boost library must be installed!'
-	Exit(1)
+##check thrift##
+if not conf.CheckLibWithHeader('thrift', 'thrift/Thrift.h', 'c++') :
+    print 'thrift library must be installed!'
+    Exit(1)
 
-    ##check zlib##
-    if conf.CheckLibWithHeader('z', 'zlib.h', 'c++'):
-	    conf.env.Append(CPPDEFINES=['HAS_ZLIB_H'])
-	    conf.env.Append(HAVE_ZLIB=1)
-    else:
-	    conf.env.Append(HAVE_ZLIB=0)
+##check zlib##
+if conf.CheckLibWithHeader('z', 'zlib.h', 'c++'):
+    conf.env.Append(CPPDEFINES=['HAS_ZLIB_H'])
+    conf.env.Append(HAVE_ZLIB=1)
+else:
+    conf.env.Append(HAVE_ZLIB=0)
 
-    ##checks done##
-    env = conf.Finish()
+##checks done##
+env = conf.Finish()
 
 extralibs = []
 

@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <thrift/windows/config.h>
+#endif
 #include "singleconnectionfactory.h"
 #include <thrift/transport/TTransportException.h>
 #include <boost/foreach.hpp>
@@ -106,7 +109,8 @@ void SingleConnectionFactory::PrivImpl::startNewConnection()
   m_Busy = true;
   m_ReuseCount = 0;
   boost::asio::ip::tcp::resolver::query query(m_Host, boost::lexical_cast<std::string>(m_ConnectionCommonSettings.port));
-  m_Resolver.async_resolve(query, boost::bind(&SingleConnectionFactory::PrivImpl::resolveHandler, shared_from_this(), boost::asio::placeholders::error(), _2 ));
+  //m_Resolver.async_resolve(query, boost::bind(&SingleConnectionFactory::PrivImpl::resolveHandler, shared_from_this(), boost::asio::placeholders::error(), _2 ));
+  m_Resolver.async_resolve(query, boost::bind(&SingleConnectionFactory::PrivImpl::resolveHandler, shared_from_this(), _1, _2 ));
 }
 
 void SingleConnectionFactory::PrivImpl::resolveHandler(const boost::system::error_code& error, boost::asio::ip::tcp::resolver::iterator iterator)

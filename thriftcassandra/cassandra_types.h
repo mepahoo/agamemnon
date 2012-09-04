@@ -7,13 +7,18 @@
 #ifndef cassandra_TYPES_H
 #define cassandra_TYPES_H
 
+#ifdef _WIN32
+#include <thrift/windows/config.h>
+#else
 #include <stdint.h>
+#endif
+
 #include <Thrift.h>
 #include <TApplicationException.h>
 #include <protocol/TProtocol.h>
 #include <transport/TTransport.h>
 
-
+#undef VOID
 
 namespace org { namespace apache { namespace cassandra {
 

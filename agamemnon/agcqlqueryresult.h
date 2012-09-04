@@ -1,6 +1,7 @@
 #ifndef AGCQLQUERYRESULT_H
 #define AGCQLQUERYRESULT_H
 
+#include "agconfig.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>

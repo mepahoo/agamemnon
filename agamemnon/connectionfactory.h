@@ -1,6 +1,7 @@
 #ifndef CONNECTIONFACTORY_H
 #define CONNECTIONFACTORY_H
 
+#include "agconfig.h"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include "cassandraconnection.h"

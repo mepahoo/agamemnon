@@ -9,7 +9,7 @@ namespace agamemnon{
   ColumnDataType columnTypeStringToEnum(const std::string& columnTypeString);
   
   struct StringPointerCompare{
-    inline bool operator()(const std::string* a, const std::string* b){
+    inline bool operator()(const std::string* a, const std::string* b) const{
       return *a < *b;
     }
   };

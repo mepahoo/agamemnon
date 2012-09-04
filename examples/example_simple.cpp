@@ -154,7 +154,7 @@ void statementPrepared(Client::Ptr client, size_t cqlIdx, PreparedQuery::Ptr que
   query->set("vint", 1000000001);
   query->set("vtext", "tex1");
   query->set("vtimestamp", boost::posix_time::time_from_string("2012-08-22 21:53:02"));
-  query->set("vuuid", UUID("c42b94bd-63b4-4de5-b4f9-1b7b663ea2d8"));
+  query->set("vuuid", ::teamspeak::agamemnon::UUID("c42b94bd-63b4-4de5-b4f9-1b7b663ea2d8"));
   query->set("vvarchar", "varcha1");
   
   client->executePreparedQuery(query, errorFunction, boost::bind(getDataDone, _1, client, cqlIdx));

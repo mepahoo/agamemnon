@@ -7,7 +7,12 @@
 #ifndef Cassandra_H
 #define Cassandra_H
 
+#ifdef _WIN32
+#include <thrift/windows/config.h>
+#else
 #include <stdint.h>
+#endif
+
 #include <transport/TBufferTransports.h>
 #include <tr1/functional>
 namespace apache { namespace thrift { namespace async {
@@ -16,6 +21,8 @@ class TAsyncChannel;
 #include <TProcessor.h>
 #include <async/TAsyncProcessor.h>
 #include "cassandra_types.h"
+
+#undef VOID
 
 namespace org { namespace apache { namespace cassandra {
 

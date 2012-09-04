@@ -6,6 +6,43 @@
 namespace teamspeak{
 namespace agamemnon{
 
+#ifdef _WIN32
+Timer::Timer()
+{
+  reset();
+}
+
+void Timer::reset()
+{
+  BOOL res = QueryPerformanceCounter(&m_StartTime);
+  if (!res) {
+    std::cerr <<"error during QueryPerformanceCounter"<<std::endl;
+    exit(1);
+  }
+}
+
+int  Timer::msElapsed()
+{
+  LARGE_INTEGER curTime;
+  LARGE_INTEGER freq;
+
+  BOOL res = QueryPerformanceCounter(&curTime);
+  if (!res) {
+    std::cerr <<"error during QueryPerformanceCounter"<<std::endl;
+    exit(1);
+  }
+
+  res = QueryPerformanceFrequency(&freq);
+  if (!res) {
+    std::cerr <<"error during QueryPerformanceFrequency"<<std::endl;
+    exit(1);
+  }
+  
+  int diff = curTime.QuadPart - m_StartTime.QuadPart;
+  return (diff*1000) / freq.QuadPart;
+ }
+ 
+#else
 bool      Timer::m_ClockIdSet = false;
 clockid_t Timer::m_ClockId = 0;
 
@@ -85,7 +122,7 @@ success:
   m_ClockId = clockid;
   m_ClockIdSet = true;
 }
-
+#endif
   
 } //namespace teamspeak
 } //namespace agamemnon

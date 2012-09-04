@@ -1,14 +1,31 @@
-import os, sys, glob
+import os, sys, glob, string
 
 #Parameters that influence buid
 #
 # debug=(0|1)  default=1
 
+#environment variable CPPPATH can be alist of include dirs to include
+#environment variable LIBPATH can be alist of library dirs to include
+ 
 #save invocation parameters
 debug = ARGUMENTS.get('debug', 1) #if we get debug=0 on the cmdline we make a non-debug build
 
 #create an environment
 env = Environment()
+
+split_char = ':';
+if os.name == 'nt':
+	split_char = ';'
+	
+extra_include_dirs = os.environ.get('CPPPATH', '')
+if (extra_include_dirs != ''):
+	env.Append(CPPPATH = string.split(extra_include_dirs, split_char));
+	print (">> Using extra include dirs " + extra_include_dirs)
+
+extra_lib_dirs = os.environ.get('LIBPATH', '')
+if (extra_lib_dirs != ''):
+	env.Append(LIBPATH = string.split(extra_lib_dirs, split_char));
+	print (">> Using extra lib dirs " + extra_lib_dirs)
 
 conf = Configure(env)
 
@@ -28,7 +45,8 @@ if 'LDFLAGS' in os.environ:
     print(">> Appending custom link flags : " + os.environ['LDFLAGS'])
 
 ##Check for boost##
-if not conf.CheckLibWithHeader('boost_system', 'boost/bind.hpp', 'c++') :
+#if not conf.CheckLibWithHeader('boost_system', 'boost/bind.hpp', 'c++') :
+if not conf.CheckCXXHeader('boost/bind.hpp') :
     print 'Boost library must be installed!'
     Exit(1)
 
@@ -70,6 +88,18 @@ if os.name == 'posix':
   if env['HAVE_ZLIB']==1:
     extralibs += ['z']
 
+if os.name == 'nt':
+  #this is needed because thrift libs itself dont include the 'thrift/' prefix
+  searchdirs = [s + "/thrift" for s in env['CPPPATH']];
+  thriftIncludeFile = env.FindFile('Thrift.h', searchdirs)
+  if thriftIncludeFile==None:
+    print "thift include dir not found in usual places"
+    Exit(1)
+
+  env.Append(CCFLAGS = Split('/EHsc'))
+  (thriftIncludeFileDir, thriftIncludeFileName) = os.path.split(thriftIncludeFile.get_abspath())
+  env.Append(CPPPATH = [thriftIncludeFileDir])
+  #env.Append(CPPDEFINES = Split('WIN32_LEAN_AND_MEAN'))
 
 #build thrift cassandra interface
 SConscript(['thriftcassandra/SConscript'], exports={'env':env}, build_dir='build/thriftcassandra', duplicate=0)

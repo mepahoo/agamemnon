@@ -1,3 +1,8 @@
+
+#ifdef _WIN32
+#include <windows/TargetVersion.h>
+#endif
+
 #include "client.h"
 #include "cassandraconnection.h"
 #include <boost/bind.hpp>

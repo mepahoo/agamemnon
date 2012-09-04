@@ -121,7 +121,7 @@ bool GlobalPreparedQueryCache::isSame(const GlobalPreparedQueryCache::FieldDataV
   return true;
 }
         
-GlobalPreparedQueryCache::GlobalPreparedQueryCache GlobalPreparedQueryCache::instance;
+GlobalPreparedQueryCache GlobalPreparedQueryCache::instance;
 
 } //namespace teamspeak
 } //namespace agamemnon
